@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI IDE</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/theme/dracula.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/hint/show-hint.min.css">
+<style>
+:root{
+  --bg0:#0d1117;--bg1:#161b22;--bg2:#21262d;--bg3:#1c2128;
+  --bd:#30363d;--bd2:#444c56;
+  --ac:#58a6ff;--acg:#3fb950;--acy:#d29922;--acr:#f85149;--acp:#bc8cff;--aco:#f0883e;
+  --t1:#e6edf3;--t2:#8b949e;--t3:#484f58;
+  --sw:240px;--th:40px;--sh:22px;
+  --fmono:'JetBrains Mono','Fira Code',Consolas,monospace;
+  --fui:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --r:5px;
+}
+[data-theme=light]{
+  --bg0:#ffffff;--bg1:#f6f8fa;--bg2:#eaeef2;--bg3:#f0f2f5;
+  --bd:#d0d7de;--bd2:#b0b7c0;
+  --ac:#0969da;--acg:#1a7f37;--acy:#9a6700;--acr:#cf222e;--acp:#8250df;--aco:#bc4c00;
+  --t1:#24292f;--t2:#57606a;--t3:#adb5bd;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--bg0);color:var(--t1)}
+#app{display:flex;flex-direction:column;height:100vh}
+#main{display:flex;flex:1;overflow:hidden}
+#editor-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* titlebar */
+#titlebar{
+  height:var(--th);background:var(--bg1);border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;padding:0 8px;gap:4px;flex-shrink:0;z-index:200;user-select:none
+}
+.brand{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;margin-right:4px}
+.brand-logo{width:22px;height:22px;border-radius:4px;background:linear-gradient(135deg,var(--ac),var(--acp));display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:800}
+.tb{background:none;border:none;color:var(--t2);padding:3px 8px;border-radius:var(--r);font-size:11.5px;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap;transition:all .12s}
+.tb:hover{background:var(--bg2);color:var(--t1)}
+.tb-r{margin-left:auto;display:flex;align-items:center;gap:4px}
+.mpill{display:flex;align-items:center;gap:5px;padding:3px 9px;border:1px solid var(--bd);border-radius:20px;font-size:11px;cursor:pointer;background:var(--bg2);transition:all .12s}
+.mpill:hover{border-color:var(--ac)}
+.mdot{width:7px;height:7px;border-radius:50%}
+
+/* sidebar */
+#sidebar{
+  width:var(--sw);min-width:var(--sw);background:var(--bg1);border-right:1px solid var(--bd);
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:width .18s,min-width .18s
+}
+#sidebar.collapsed{width:0;min-width:0}
+.sb-hdr{
+  padding:6px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--t3);display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--bd);flex-shrink:0;user-select:none
+}
+.sb-hdr-title{display:flex;align-items:center;gap:5px;flex:1;cursor:pointer}
+.sb-hdr-acts{display:flex;gap:2px}
+.sib{background:none;border:none;color:var(--t3);cursor:pointer;padding:2px 5px;border-radius:3px;font-size:12px;line-height:1;transition:all .1s}
+.sib:hover{color:var(--t1);background:var(--bg2)}
+#file-tree{flex:1;overflow-y:auto;overflow-x:hidden;padding:2px 0}
+
+/* tree nodes */
+.tree-node{}
+.tree-row{
+  display:flex;align-items:center;height:22px;cursor:pointer;
+  border-left:2px solid transparent;font-size:12.5px;color:var(--t2);
+  position:relative;white-space:nowrap;overflow:hidden;
+  transition:background .08s,color .08s
+}
+.tree-row:hover{background:rgba(255,255,255,.04);color:var(--t1)}
+.tree-row.active{background:rgba(88,166,255,.1);color:var(--ac);border-left-color:var(--ac)}
+[data-theme=light] .tree-row:hover{background:rgba(0,0,0,.04)}
+[data-theme=light] .tree-row.active{background:rgba(9,105,218,.08)}
+.tree-row .tr-indent{display:inline-block;flex-shrink:0}
+.tree-row .tr-chevron{width:14px;flex-shrink:0;font-size:9px;color:var(--t3);display:flex;align-items:center;justify-content:center}
+.tree-row .tr-icon{font-size:13px;flex-shrink:0;margin-right:4px}
+.tree-row .tr-name{flex:1;overflow:hidden;text-overflow:ellipsis;line-height:1}
+.tree-row .tr-acts{
+  display:none;position:absolute;right:2px;top:50%;transform:translateY(-50%);
+  background:var(--bg2);border-radius:3px;padding:0 2px;gap:1px;align-items:center
+}
+.tree-row:hover .tr-acts{display:flex}
+.tra{background:none;border:none;color:var(--t3);padding:2px 4px;cursor:pointer;font-size:10px;border-radius:2px;line-height:1}
+.tra:hover{color:var(--t1);background:var(--bd)}
+.tree-empty{padding:20px 12px;font-size:12px;color:var(--t3);text-align:center;line-height:1.8}
+
+/* problems section */
+#problems-section{border-top:1px solid var(--bd);flex-shrink:0}
+#problems-body{max-height:130px;overflow-y:auto;display:none}
+.prob-item{display:flex;align-items:flex-start;gap:6px;padding:3px 10px;font-size:11.5px;cursor:pointer;transition:background .08s}
+.prob-item:hover{background:var(--bg2)}
+.prob-icon{flex-shrink:0;font-size:11px;margin-top:1px}
+.prob-msg{flex:1;color:var(--t1);line-height:1.4}
+.prob-ln{color:var(--t3);font-size:10px;flex-shrink:0}
+
+/* tabs */
+#tabs-bar{height:34px;background:var(--bg1);border-bottom:1px solid var(--bd);display:flex;align-items:flex-end;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+#tabs-bar::-webkit-scrollbar{display:none}
+.tab{
+  display:flex;align-items:center;gap:5px;padding:0 10px;height:30px;min-width:90px;max-width:160px;
+  font-size:11.5px;color:var(--t2);cursor:pointer;flex-shrink:0;
+  border-right:1px solid var(--bd);border-top:2px solid transparent;
+  background:var(--bg1);white-space:nowrap;overflow:hidden;transition:all .1s
+}
+.tab:hover{background:var(--bg2);color:var(--t1)}
+.tab.active{background:var(--bg0);color:var(--t1);border-top-color:var(--ac)}
+.tab .tn{flex:1;overflow:hidden;text-overflow:ellipsis}
+.tab.dirty .tn::after{content:' ●';color:var(--aco);font-size:8px}
+.tab .tc{opacity:0;font-size:10px;padding:1px 3px;border-radius:2px;flex-shrink:0}
+.tab:hover .tc,.tab.active .tc{opacity:.5}
+.tab .tc:hover{opacity:1!important;background:var(--bg2)}
+.tab-add{padding:0 10px;height:30px;display:flex;align-items:center;color:var(--t3);cursor:pointer;flex-shrink:0}
+.tab-add:hover{color:var(--t1)}
+
+/* action bar */
+#action-bar{
+  display:flex;align-items:center;gap:4px;padding:4px 8px;
+  background:var(--bg3);border-bottom:1px solid var(--bd);flex-shrink:0;flex-wrap:wrap
+}
+.ab{
+  display:flex;align-items:center;gap:4px;border:1px solid var(--bd);border-radius:var(--r);
+  padding:3px 9px;font-size:11px;cursor:pointer;background:var(--bg2);color:var(--t1);
+  font-family:var(--fui);white-space:nowrap;transition:all .12s
+}
+.ab:hover{filter:brightness(1.2)}
+.ab:disabled{opacity:.35;cursor:not-allowed}
+.ab.c{border-color:var(--ac);color:var(--ac)}.ab.c:hover{background:var(--ac);color:#fff}
+.ab.g{border-color:var(--acg);color:var(--acg)}.ab.g:hover{background:var(--acg);color:#fff}
+.ab.y{border-color:var(--acy);color:var(--acy)}.ab.y:hover{background:var(--acy);color:#fff}
+.ab.p{border-color:var(--acp);color:var(--acp)}.ab.p:hover{background:var(--acp);color:#fff}
+.ab.o{border-color:var(--aco);color:var(--aco)}.ab.o:hover{background:var(--aco);color:#fff}
+.ab.r{border-color:var(--acr);color:var(--acr)}.ab.r:hover{background:var(--acr);color:#fff}
+.ab.t{border-color:#39d353;color:#39d353}.ab.t:hover{background:#39d353;color:#fff}
+.ab.v{border-color:#a78bfa;color:#a78bfa}.ab.v:hover{background:#a78bfa;color:#fff}
+.bsep{width:1px;height:16px;background:var(--bd);flex-shrink:0;margin:0 2px}
+.lsel{background:var(--bg2);border:1px solid var(--bd);color:var(--t1);border-radius:var(--r);padding:3px 6px;font-size:11px;cursor:pointer;outline:none}
+.lsel:focus{border-color:var(--ac)}
+
+/* editor */
+#editor-box{flex:1;overflow:hidden;position:relative}
+.CodeMirror{height:100%!important;font-family:var(--fmono)!important;font-size:14px!important;line-height:1.65!important;background:var(--bg0)!important}
+.CodeMirror-scroll{overflow:auto!important}
+.CodeMirror-gutters{background:var(--bg1)!important;border-right:1px solid var(--bd)!important}
+.CodeMirror-linenumber{color:var(--t3)!important}
+[data-theme=light] .CodeMirror{background:#fff!important}
+[data-theme=light] .CodeMirror-gutters{background:#f6f8fa!important}
+.cm-err-line{background:rgba(248,81,73,.06)!important}
+.cm-warn-line{background:rgba(210,153,34,.04)!important}
+#prog{height:2px;background:var(--ac);position:absolute;top:0;left:0;z-index:10;transition:width .25s}
+
+/* resizer */
+#resizer{height:4px;background:var(--bd);cursor:ns-resize;flex-shrink:0;transition:background .12s}
+#resizer:hover,#resizer.dragging{background:var(--ac)}
+
+/* output panel */
+#out-panel{height:0;overflow:hidden;border-top:1px solid var(--bd);background:var(--bg1);display:flex;flex-direction:column;transition:height .18s}
+#out-panel.open{height:280px}
+#out-hdr{display:flex;align-items:center;justify-content:space-between;padding:5px 10px;border-bottom:1px solid var(--bd);flex-shrink:0}
+.out-title{font-size:11.5px;font-weight:600;color:var(--t2);display:flex;align-items:center;gap:5px}
+.out-acts{display:flex;gap:4px}
+#out-body{flex:1;overflow-y:auto;padding:8px 12px;font-family:var(--fmono);font-size:12.5px;line-height:1.6;color:var(--t1);white-space:pre-wrap;word-break:break-word}
+.pbadge{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:500}
+.pb-g{background:rgba(66,133,244,.15);color:#4285f4}
+.pb-m{background:rgba(240,136,62,.15);color:var(--aco)}
+.pb-q{background:rgba(63,185,80,.15);color:var(--acg)}
+.pb-e{background:rgba(248,81,73,.15);color:var(--acr)}
+.obtn{display:flex;align-items:center;gap:3px;padding:2px 8px;border-radius:var(--r);font-size:11px;cursor:pointer;border:1px solid var(--bd);background:var(--bg2);color:var(--t2);transition:all .1s}
+.obtn:hover{color:var(--t1)}
+.obtn.apply-btn{background:var(--acg);color:#fff;border-color:var(--acg)}.obtn.apply-btn:hover{opacity:.88}
+.obtn.cls-btn{background:none;border:none;color:var(--t3)}.obtn.cls-btn:hover{color:var(--t1)}
+
+/* statusbar */
+#statusbar{height:var(--sh);background:var(--bg2);border-top:1px solid var(--bd);display:flex;align-items:center;padding:0 8px;gap:8px;flex-shrink:0;overflow:hidden}
+.si{font-size:10px;color:var(--t2);display:flex;align-items:center;gap:3px;white-space:nowrap;cursor:default}
+.si.ok{color:var(--acg)}.si.err{color:var(--acr)}.si.warn{color:var(--acy)}.si.loading{color:var(--ac)}
+.ssep{font-size:9px;color:var(--t3)}
+.sr{margin-left:auto;display:flex;gap:8px}
+#ec{cursor:pointer}.#ec:hover{color:var(--t1)}
+
+/* AI Chat */
+#chat-win{
+  display:none;position:fixed;bottom:28px;right:10px;width:390px;
+  background:var(--bg1);border:1px solid var(--bd2);border-radius:10px;
+  box-shadow:0 12px 40px rgba(0,0,0,.55);z-index:500;flex-direction:column;overflow:hidden;max-height:520px
+}
+#chat-win.show{display:flex}
+#chat-hdr{padding:9px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.chat-title-row{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
+#chat-msgs{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:60px}
+.cm{display:flex;flex-direction:column;gap:3px}
+.cm .cr{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em}
+.cm .ct{font-size:12.5px;line-height:1.6;color:var(--t1);background:var(--bg2);border-radius:var(--r);padding:7px 10px;white-space:pre-wrap;word-break:break-word}
+.cm.ai .ct{background:var(--bg3);border:1px solid var(--bd)}
+.cm .cc{font-family:var(--fmono);font-size:12px;background:var(--bg0);border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;overflow-x:auto;white-space:pre;word-break:normal}
+.cc-acts{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap}
+.cca{font-size:11px;padding:2px 9px;border-radius:var(--r);border:1px solid var(--acg);color:var(--acg);background:none;cursor:pointer;transition:all .1s}
+.cca:hover{background:var(--acg);color:#fff}
+.cca.cp{border-color:var(--ac);color:var(--ac)}.cca.cp:hover{background:var(--ac);color:#fff}
+#ctx-bar{padding:4px 10px;border-top:1px solid var(--bd);font-size:10.5px;color:var(--t3);display:flex;align-items:center;gap:5px;flex-shrink:0}
+#ctx-bar.has{color:var(--acy)}
+#chat-input-row{padding:7px 8px;border-top:1px solid var(--bd);display:flex;gap:5px;flex-shrink:0;align-items:flex-end}
+#chat-in{
+  flex:1;background:var(--bg2);border:1px solid var(--bd);color:var(--t1);
+  border-radius:var(--r);padding:6px 9px;font-size:12px;resize:none;
+  outline:none;min-height:34px;max-height:110px;font-family:var(--fui);line-height:1.5
+}
+#chat-in:focus{border-color:var(--ac)}
+#chat-send{background:var(--ac);border:none;color:#fff;border-radius:var(--r);padding:6px 12px;font-size:12px;cursor:pointer;flex-shrink:0;transition:opacity .12s}
+#chat-send:hover{opacity:.85}
+#chat-send:disabled{opacity:.4;cursor:not-allowed}
+
+/* modals */
+.modal-content{background:var(--bg1);border:1px solid var(--bd);border-radius:10px;color:var(--t1)}
+.modal-header,.modal-footer{border-color:var(--bd)}
+.modal-title{font-size:13px;font-weight:600}
+.btn-close{filter:invert(1) brightness(.6)}
+[data-theme=light] .btn-close{filter:none}
+.fl{font-size:11.5px;color:var(--t2);margin-bottom:3px}
+.fc,.fs{background:var(--bg2);border:1px solid var(--bd);color:var(--t1);border-radius:var(--r);font-size:12.5px;padding:6px 9px;width:100%}
+.fc:focus,.fs:focus{border-color:var(--ac);outline:none;box-shadow:0 0 0 3px rgba(88,166,255,.12)}
+.fc::placeholder{color:var(--t3)}
+.pcard{border:1px solid var(--bd);border-radius:var(--r);padding:9px 12px;margin-bottom:7px;transition:all .12s}
+.pcard:hover{border-color:var(--ac);background:var(--bg2)}
+.pn{font-size:12.5px;font-weight:600}
+.pd{font-size:10.5px;color:var(--t3);margin-top:2px}
+
+/* misc */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--t3)}
+.spin{animation:spin .65s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.kbd{background:var(--bg2);border:1px solid var(--bd);border-radius:3px;padding:1px 5px;font-size:10px;color:var(--t2);font-family:var(--fmono)}
+.toast{
+  position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+  background:var(--bg1);border:1px solid var(--bd2);
+  border-radius:var(--r);padding:6px 14px;font-size:12px;
+  z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.45);
+  pointer-events:none;animation:tup .18s ease
+}
+@keyframes tup{from{transform:translateX(-50%) translateY(8px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+/* inline rename */
+.rename-input{
+  background:var(--bg2);border:1px solid var(--ac);color:var(--t1);
+  border-radius:3px;padding:1px 5px;font-size:12px;font-family:var(--fui);
+  width:130px;outline:none
+}
+/* context menu */
+#ctx-menu{
+  display:none;position:fixed;z-index:2000;
+  background:var(--bg1);border:1px solid var(--bd2);
+  border-radius:var(--r);box-shadow:0 8px 24px rgba(0,0,0,.45);
+  min-width:160px;padding:3px 0;font-size:12px
+}
+.ctx-item{padding:5px 14px;cursor:pointer;color:var(--t1);display:flex;align-items:center;gap:7px;transition:background .08s}
+.ctx-item:hover{background:var(--bg2)}
+.ctx-item.danger{color:var(--acr)}
+.ctx-sep{height:1px;background:var(--bd);margin:2px 0}
+</style>
+</head>
+<body>
+<div id="app">
+<!-- titlebar -->
+<div id="titlebar">
+  <div class="brand"><div class="brand-logo">AI</div>AI IDE</div>
+  <button class="tb" onclick="IDE.sb.toggle()"><i class="bi bi-layout-sidebar"></i> Explorer</button>
+  <button class="tb" onclick="IDE.fs.openFolder()"><i class="bi bi-folder2-open"></i> Open Folder</button>
+  <button class="tb" onclick="IDE.fs.newFilePrompt(null)"><i class="bi bi-file-plus"></i> New File</button>
+  <button class="tb" onclick="IDE.fs.saveActive()"><i class="bi bi-floppy2"></i> Save <span class="kbd" style="margin-left:2px">Ctrl+S</span></button>
+  <button class="tb" onclick="IDE.fs.saveAll()"><i class="bi bi-floppy2-fill"></i> Save All</button>
+  <button class="tb" onclick="$('#settingsModal').modal('show')"><i class="bi bi-gear"></i> API Keys</button>
+  <div class="tb-r">
+    <div class="mpill" id="mpill" onclick="$('#settingsModal').modal('show')">
+      <div class="mdot" id="mdot" style="background:#4285f4"></div>
+      <span id="mname">Gemini 2.0 Flash</span>
+      <i class="bi bi-chevron-down" style="font-size:9px;color:var(--t3)"></i>
+    </div>
+    <button class="tb" onclick="IDE.theme.toggle()" id="themeBtn"><i class="bi bi-moon-stars-fill"></i></button>
+    <button class="tb" onclick="$('#shortcutsModal').modal('show')"><i class="bi bi-keyboard"></i></button>
+  </div>
+</div>
+
+<div id="main">
+<!-- sidebar -->
+<div id="sidebar">
+  <div class="sb-hdr">
+    <div class="sb-hdr-title" id="sb-project-title">
+      <i class="bi bi-folder2" style="font-size:11px"></i>
+      <span id="sb-proj-name">EXPLORER</span>
+    </div>
+    <div class="sb-hdr-acts">
+      <button class="sib" title="New File" onclick="IDE.fs.newFilePrompt(null)"><i class="bi bi-file-plus"></i></button>
+      <button class="sib" title="New Folder" onclick="IDE.fs.newFolderPrompt(null)"><i class="bi bi-folder-plus"></i></button>
+      <button class="sib" title="Open Folder" onclick="IDE.fs.openFolder()"><i class="bi bi-folder2-open"></i></button>
+      <button class="sib" title="Collapse All" onclick="IDE.fs.collapseAll()"><i class="bi bi-arrow-bar-up"></i></button>
+    </div>
+  </div>
+  <div id="file-tree"></div>
+  <div id="problems-section">
+    <div class="sb-hdr" onclick="IDE.probs.togglePanel()" style="cursor:pointer">
+      <div class="sb-hdr-title">
+        <i class="bi bi-exclamation-circle" style="font-size:11px"></i>
+        PROBLEMS <span id="prob-count"></span>
+      </div>
+      <i class="bi bi-chevron-right" id="prob-chev"></i>
+    </div>
+    <div id="problems-body"></div>
+  </div>
+</div>
+
+<!-- editor wrap -->
+<div id="editor-wrap">
+  <div id="tabs-bar">
+    <div class="tab-add" onclick="IDE.fs.newFilePrompt(null)" title="New file"><i class="bi bi-plus"></i></div>
+  </div>
+  <div id="action-bar">
+    <button class="ab c" id="b-complete" onclick="IDE.ai.run('complete')" title="Ctrl+Space"><i class="bi bi-lightning-fill"></i> Complete</button>
+    <button class="ab g" id="b-fix" onclick="IDE.ai.run('fix')" title="Alt+F"><i class="bi bi-wrench"></i> Fix</button>
+    <button class="ab y" id="b-explain" onclick="IDE.ai.run('explain')" title="Alt+E"><i class="bi bi-chat-text"></i> Explain</button>
+    <button class="ab p" id="b-doc" onclick="IDE.ai.run('doc')"><i class="bi bi-file-text"></i> Docs</button>
+    <button class="ab o" id="b-review" onclick="IDE.ai.run('review')" title="Alt+R"><i class="bi bi-shield-check"></i> Review</button>
+    <button class="ab t" id="b-format" onclick="IDE.ai.run('format')" title="Alt+Shift+F"><i class="bi bi-layout-text-sidebar-reverse"></i> Format</button>
+    <button class="ab" id="b-refactor" onclick="IDE.ai.run('refactor')" style="border-color:#60a5fa;color:#60a5fa"><i class="bi bi-arrow-repeat"></i> Refactor</button>
+    <button class="ab" id="b-optimize" onclick="IDE.ai.run('optimize')" style="border-color:#34d399;color:#34d399"><i class="bi bi-speedometer2"></i> Optimize</button>
+    <button class="ab v" id="b-tests" onclick="IDE.ai.run('tests')"><i class="bi bi-check2-circle"></i> Tests</button>
+    <button class="ab r" id="b-convert" onclick="IDE.ai.run('convert')"><i class="bi bi-arrow-left-right"></i> Convert</button>
+    <div class="bsep"></div>
+    <button class="ab c" id="b-chat" onclick="IDE.chat.toggle(true)" title="Ctrl+U"><i class="bi bi-stars"></i> AI Chat</button>
+    <div class="bsep"></div>
+    <select class="lsel" id="langSel" onchange="IDE.editor.setLang(this.value)">
+      <option value="php">PHP/Laravel</option>
+      <option value="javascript">JavaScript</option>
+      <option value="python">Python</option>
+      <option value="typescript">TypeScript</option>
+      <option value="sql">SQL</option>
+      <option value="htmlmixed">HTML</option>
+      <option value="css">CSS</option>
+      <option value="text/x-java">Java</option>
+      <option value="text/x-csrc">C/C++</option>
+      <option value="shell">Bash</option>
+      <option value="yaml">YAML</option>
+      <option value="xml">XML</option>
+    </select>
+  </div>
+  <div id="editor-box">
+    <div id="prog" style="width:0"></div>
+    <textarea id="cm-editor"></textarea>
+  </div>
+  <div id="resizer"></div>
+  <div id="out-panel">
+    <div id="out-hdr">
+      <div class="out-title">
+        <i class="bi bi-stars" style="color:var(--ac)"></i>
+        <span id="out-title-txt">AI Output</span>
+        <span class="pbadge pb-g" id="out-badge">Gemini</span>
+      </div>
+      <div class="out-acts">
+        <button class="obtn" onclick="IDE.panel.copy()"><i class="bi bi-clipboard"></i> Copy</button>
+        <button class="obtn apply-btn" id="applyBtn" onclick="IDE.panel.apply()"><i class="bi bi-arrow-return-left"></i> Apply</button>
+        <button class="obtn cls-btn" onclick="IDE.panel.close()"><i class="bi bi-x-lg"></i></button>
+      </div>
+    </div>
+    <div id="out-body"><span style="color:var(--t3);font-style:italic">AI output appears here…</span></div>
+  </div>
+</div>
+</div>
+
+<!-- statusbar -->
+<div id="statusbar">
+  <div class="si loading" id="si-st"><i class="bi bi-circle-fill" style="font-size:5px"></i><span id="st-msg">Ready</span></div>
+  <span class="ssep">·</span>
+  <div class="si" id="si-prov">No API key</div>
+  <span class="ssep">·</span>
+  <div class="si" id="ec" onclick="IDE.probs.togglePanel()"></div>
+  <div class="sr">
+    <div class="si" id="si-save"></div>
+    <div class="si"><span id="si-lang">PHP</span></div>
+    <span class="ssep">·</span>
+    <div class="si"><span id="si-cur">Ln 1, Col 1</span></div>
+    <span class="ssep">·</span>
+    <div class="si"><span id="si-lines">0 lines</span></div>
+  </div>
+</div>
+</div>
+
+<!-- AI Chat -->
+<div id="chat-win">
+  <div id="chat-hdr">
+    <div class="chat-title-row">
+      <i class="bi bi-stars" style="color:var(--ac)"></i>
+      AI Assistant
+      <span class="pbadge pb-g" id="chat-badge" style="font-size:10px">Gemini</span>
+    </div>
+    <div style="display:flex;gap:4px">
+      <button class="obtn" onclick="IDE.chat.clear()" style="padding:2px 7px;font-size:11px"><i class="bi bi-trash"></i></button>
+      <button class="obtn cls-btn" onclick="IDE.chat.toggle(false)"><i class="bi bi-x-lg"></i></button>
+    </div>
+  </div>
+  <div id="chat-msgs">
+    <div class="cm ai">
+      <div class="cr">AI Assistant</div>
+      <div class="ct">👋 <strong>AI Chat</strong> — like Trae AI / Cursor<br><br>
+      <b>Ctrl+U</b> to open with selected code as context.<br>
+      Then type: <em>"add input validation"</em>, <em>"convert to TypeScript"</em>, <em>"add unit tests"</em> etc.<br><br>
+      I'll write the code and you can <b>Apply</b> it directly to your editor.</div>
+    </div>
+  </div>
+  <div id="ctx-bar">
+    <i class="bi bi-code-square"></i>
+    <span id="ctx-txt">No code context</span>
+    <button class="obtn cls-btn" style="margin-left:auto;padding:1px 6px;font-size:10px" onclick="IDE.chat.clearCtx()">Clear</button>
+  </div>
+  <div id="chat-input-row">
+    <textarea id="chat-in" placeholder="Ask AI to write, fix, explain code… (Enter=send, Shift+Enter=newline)" rows="1"></textarea>
+    <button id="chat-send" onclick="IDE.chat.send()"><i class="bi bi-send-fill"></i></button>
+  </div>
+</div>
+
+<!-- context menu -->
+<div id="ctx-menu">
+  <div class="ctx-item" id="cm-new-file"><i class="bi bi-file-plus"></i> New File</div>
+  <div class="ctx-item" id="cm-new-folder"><i class="bi bi-folder-plus"></i> New Folder</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" id="cm-rename"><i class="bi bi-pencil"></i> Rename</div>
+  <div class="ctx-item danger" id="cm-delete"><i class="bi bi-trash"></i> Delete</div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal fade" id="settingsModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-gear-fill me-2" style="color:var(--ac)"></i>API Keys &amp; Settings</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3">
+        <p style="font-size:11px;color:var(--t2);margin-bottom:10px"><i class="bi bi-shield-lock me-1"></i>Keys saved in localStorage only. Auto-switch: <span class="pbadge pb-g">Gemini</span> → <span class="pbadge pb-m">Mistral</span> → <span class="pbadge pb-q">Groq</span></p>
+        <div class="pcard">
+          <div class="d-flex justify-content-between">
+            <div><div class="pn"><span class="pbadge pb-g me-1">Gemini</span> Google Gemini 2.0 Flash</div><div class="pd">aistudio.google.com/apikey — free</div></div>
+            <span id="st-gemini" class="pbadge" style="font-size:10px"></span>
+          </div>
+          <input type="password" class="fc mt-2" id="key-gemini" placeholder="AIza…" autocomplete="off">
+        </div>
+        <div class="pcard">
+          <div class="d-flex justify-content-between">
+            <div><div class="pn"><span class="pbadge pb-m me-1">Mistral</span> Codestral Latest</div><div class="pd">console.mistral.ai/api-keys — free</div></div>
+            <span id="st-mistral" class="pbadge" style="font-size:10px"></span>
+          </div>
+          <input type="password" class="fc mt-2" id="key-mistral" placeholder="…" autocomplete="off">
+        </div>
+        <div class="pcard">
+          <div class="d-flex justify-content-between">
+            <div><div class="pn"><span class="pbadge pb-q me-1">Groq</span> Llama 3.3 70B — very fast</div><div class="pd">console.groq.com/keys — free</div></div>
+            <span id="st-groq" class="pbadge" style="font-size:10px"></span>
+          </div>
+          <input type="password" class="fc mt-2" id="key-groq" placeholder="gsk_…" autocomplete="off">
+        </div>
+        <hr style="border-color:var(--bd);margin:12px 0">
+        <div class="row g-2">
+          <div class="col-3"><label class="fl">Font Size</label>
+            <select class="fs" id="s-fontsize"><option value="12">12px</option><option value="13">13px</option><option value="14" selected>14px</option><option value="15">15px</option><option value="16">16px</option><option value="18">18px</option></select>
+          </div>
+          <div class="col-3"><label class="fl">Tab Size</label>
+            <select class="fs" id="s-tabsize"><option value="2" selected>2 spaces</option><option value="4">4 spaces</option></select>
+          </div>
+          <div class="col-3"><label class="fl">Word Wrap</label>
+            <select class="fs" id="s-wrap"><option value="off">Off</option><option value="on" selected>On</option></select>
+          </div>
+          <div class="col-3"><label class="fl">AI Accuracy</label>
+            <select class="fs" id="s-aimode"><option value="balanced">Balanced</option><option value="precise" selected>Precise</option><option value="creative">Creative</option></select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary btn-sm" onclick="IDE.settings.save()"><i class="bi bi-floppy me-1"></i>Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New File/Folder Modal -->
+<div class="modal fade" id="nfModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="nf-title">New File</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3">
+        <label class="fl" id="nf-label">File name</label>
+        <input type="text" class="fc" id="nf-input" placeholder="index.php">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="nf-ok">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Shortcuts Modal -->
+<div class="modal fade" id="shortcutsModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-keyboard me-2"></i>Keyboard Shortcuts</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <table style="width:100%;font-size:12px;border-collapse:collapse">
+          <thead><tr style="border-bottom:1px solid var(--bd)"><th style="padding:6px 14px;color:var(--t2);font-weight:500;text-align:left">Action</th><th style="padding:6px 14px;color:var(--t2);font-weight:500;text-align:right">Key</th></tr></thead>
+          <tbody id="sc-body"></tbody>
+        </table>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- CDN Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/php/php.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/shell/shell.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/yaml/yaml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/hint/javascript-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/comment/comment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/edit/closetag.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/selection/active-line.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/search/search.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/search/searchcursor.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/dialog/dialog.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/fold/foldcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/fold/brace-fold.min.js"></script>
+
+<script>
+// ════════════════════════════════════════════════════════
+// AI IDE — Full Application
+// ════════════════════════════════════════════════════════
+const IDE = (() => {
+const $ = window.$;
+
+// ── Shared state ─────────────────────────────────────────
+const S = {
+  cm: null,
+  // Virtual FS: tree of nodes
+  // node: { id, name, type:'file'|'folder', parent:id|null, open:bool }
+  // files: { id -> { content, savedContent, lang, fsHandle(optional) } }
+  nodes: {},          // id -> node
+  fileData: {},       // id -> { content, savedContent, lang, fsHandle }
+  rootIds: [],        // top-level node ids (ordered)
+  childMap: {},       // parentId -> [childId, ...]
+  activeFileId: null,
+  openTabIds: [],     // ordered list of open tab ids
+  theme: 'dark',
+  isLoading: false,
+  chatOpen: false,
+  chatCtx: null,
+  chatCtxLabel: '',
+  chatHistory: [],
+  problems: [],
+  projectName: null,
+  fsDirectoryHandle: null, // File System Access API handle
+  providers: {
+    gemini:  { name:'Gemini 2.0 Flash',    model:'gemini-2.0-flash',         color:'#4285f4', badge:'pb-g', ex:false },
+    mistral: { name:'Mistral Codestral',   model:'codestral-latest',          color:'#f0883e', badge:'pb-m', ex:false },
+    groq:    { name:'Groq Llama-3.3-70b',  model:'llama-3.3-70b-versatile',   color:'#3fb950', badge:'pb-q', ex:false },
+  },
+};
+
+// ── Constants ─────────────────────────────────────────────
+const EXT_LANG = {
+  php:'php', js:'javascript', ts:'javascript', jsx:'javascript', tsx:'javascript',
+  py:'python', html:'htmlmixed', htm:'htmlmixed', css:'css', sql:'sql',
+  sh:'shell', bash:'shell', yaml:'yaml', yml:'yaml', xml:'xml', svg:'xml',
+  java:'text/x-java', c:'text/x-csrc', cpp:'text/x-csrc', h:'text/x-csrc',
+  json:'javascript', md:'xml', txt:'xml', vue:'htmlmixed', blade:'htmlmixed',
+};
+const LANG_LABEL = {
+  php:'PHP', javascript:'JS', python:'Python', typescript:'TS',
+  sql:'SQL', htmlmixed:'HTML', css:'CSS', 'text/x-java':'Java',
+  'text/x-csrc':'C/C++', shell:'Bash', yaml:'YAML', xml:'XML',
+};
+const LANG_FRIENDLY = {
+  php:'PHP/Laravel', javascript:'JavaScript', python:'Python', typescript:'TypeScript',
+  sql:'SQL', htmlmixed:'HTML', css:'CSS', 'text/x-java':'Java',
+  'text/x-csrc':'C/C++', shell:'Bash', yaml:'YAML', xml:'XML',
+};
+const FILE_ICONS = {
+  php:'filetype-php', js:'filetype-js', jsx:'filetype-jsx', ts:'filetype-tsx',
+  tsx:'filetype-tsx', py:'filetype-py', html:'filetype-html', htm:'filetype-html',
+  css:'filetype-css', sql:'database', sh:'terminal', bash:'terminal',
+  md:'markdown', json:'filetype-json', xml:'code-slash', vue:'filetype-vue',
+  blade:'filetype-php', yaml:'file-code', yml:'file-code', txt:'file-text',
+  svg:'file-image', jpg:'file-image', png:'file-image',
+};
+const STARTERS = {
+  php:`<?php\n\nnamespace App\\Http\\Controllers;\n\nuse Illuminate\\Http\\Request;\nuse App\\Models\\User;\n\nclass UserController extends Controller\n{\n    /**\n     * Display listing of users.\n     */\n    public function index(Request $request)\n    {\n        $users = User::query()\n            ->when($request->search, fn($q, $s) => $q->where('name', 'like', "%{$s}%"))\n            ->latest()\n            ->paginate(15);\n\n        return view('users.index', compact('users'));\n    }\n\n    /**\n     * Store a new user.\n     */\n    public function store(Request $request)\n    {\n        $validated = $request->validate([\n            'name'     => 'required|string|max:255',\n            'email'    => 'required|email|unique:users',\n            'password' => 'required|min:8|confirmed',\n        ]);\n\n        User::create($validated);\n\n        return redirect()->route('users.index')->with('success', 'User created.');\n    }\n}\n`,
+  javascript:`'use strict';\n\nclass App {\n  constructor() {\n    this.init();\n  }\n\n  init() {\n    console.log('App started');\n  }\n}\n\nconst app = new App();\n`,
+  python:`from typing import Optional\n\n\ndef main() -> None:\n    \"\"\"Entry point.\"\"\"\n    pass\n\n\nif __name__ == '__main__':\n    main()\n`,
+  htmlmixed:`<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Document</title>\n</head>\n<body>\n\n</body>\n</html>\n`,
+  css:`*, *::before, *::after { box-sizing: border-box; }\n\nbody {\n  margin: 0;\n  font-family: sans-serif;\n}\n`,
+  sql:`SELECT *\nFROM table_name\nWHERE active = 1\nORDER BY created_at DESC\nLIMIT 10;\n`,
+};
+
+// ── Utilities ─────────────────────────────────────────────
+const uid = () => '_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+const escH = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const getKey = p => localStorage.getItem('aiide_key_' + p) || '';
+const setKey = (p, v) => v ? localStorage.setItem('aiide_key_' + p, v) : localStorage.removeItem('aiide_key_' + p);
+const getLang = () => $('#langSel').val() || 'php';
+const getTemp = () => ({ balanced:0.4, precise:0.15, creative:0.7 }[localStorage.getItem('aiide_aimode') || 'precise'] ?? 0.15);
+const providerOrder = () => ['gemini','mistral','groq'].filter(p => getKey(p) && !S.providers[p].ex);
+
+function setStatus(msg, cls) {
+  $('#si-st').attr('class', 'si ' + (cls||'')).find('#st-msg').text(msg);
+}
+function showProg(pct) {
+  $('#prog').css('width', pct + '%');
+  if (pct >= 100) setTimeout(() => $('#prog').css('width','0'), 500);
+}
+function disableAi(on) {
+  $('[id^=b-]').prop('disabled', on);
+  $('#chat-send').prop('disabled', on);
+}
+function toast(msg, type) {
+  const colors = { success:'var(--acg)', error:'var(--acr)', warning:'var(--acy)', info:'var(--ac)' };
+  const el = $(`<div class="toast" style="border-color:${colors[type]||colors.info}">${escH(msg)}</div>`);
+  $('body').append(el);
+  setTimeout(() => el.fadeOut(300, () => el.remove()), 2800);
+}
+function updateProvUI(p) {
+  const info = S.providers[p];
+  $('#mdot').css('background', info.color);
+  $('#mname').text(info.name);
+  const short = p.charAt(0).toUpperCase() + p.slice(1);
+  $('#out-badge').attr('class', 'pbadge ' + info.badge).text(short);
+  $('#chat-badge').attr('class', 'pbadge ' + info.badge).text(short);
+  $('#si-prov').text(info.name);
+}
+function setProvSt(p, st) {
+  const cls = st === 'ok' ? 'pbadge ' + S.providers[p].badge : 'pbadge pb-e';
+  const txt = st === 'ok' ? '✓ active' : st === 'ex' ? '⚠ rate limited' : '✗ error';
+  $('#st-' + p).attr('class', cls).text(txt);
+}
+function shortcutsTable() {
+  const rows = [
+    ['AI Autocomplete', 'Ctrl+Space'],
+    ['AI Chat (with context)', 'Ctrl+U'],
+    ['Fix Code', 'Alt+F'],
+    ['Explain Code', 'Alt+E'],
+    ['Code Review', 'Alt+R'],
+    ['Format Code', 'Alt+Shift+F'],
+    ['Save (in-memory)', 'Ctrl+S'],
+    ['Save to Disk (if FS open)', 'Ctrl+Shift+S'],
+    ['Toggle Comment', 'Ctrl+/'],
+    ['Find / Replace', 'Ctrl+H'],
+    ['Duplicate Line', 'Alt+Shift+D'],
+    ['Move Line Up/Down', 'Alt+↑/↓'],
+    ['Toggle Theme', 'Ctrl+Shift+T'],
+    ['Toggle Sidebar', 'Ctrl+B'],
+    ['New File', 'Ctrl+N'],
+  ];
+  $('#sc-body').html(rows.map(([a,k]) =>
+    `<tr style="border-bottom:1px solid var(--bd)"><td style="padding:5px 14px;color:var(--t1)">${a}</td><td style="padding:5px 14px;text-align:right"><span class="kbd">${k}</span></td></tr>`
+  ).join(''));
+}
+
+// ── Node / Tree helpers ───────────────────────────────────
+function nodeExt(n) { return n.name.split('.').pop().toLowerCase(); }
+function nodeIcon(n) {
+  if (n.type === 'folder') return n.open ? 'folder2-open' : 'folder2';
+  return FILE_ICONS[nodeExt(n)] || 'file-code';
+}
+function nodeLang(n) { return EXT_LANG[nodeExt(n)] || 'php'; }
+function sortChildren(ids) {
+  return [...ids].sort((a, b) => {
+    const na = S.nodes[a], nb = S.nodes[b];
+    if (na.type !== nb.type) return na.type === 'folder' ? -1 : 1;
+    return na.name.localeCompare(nb.name);
+  });
+}
+function getChildren(parentId) {
+  return sortChildren(S.childMap[parentId] || []);
+}
+function addNode(node, parentId) {
+  S.nodes[node.id] = node;
+  node.parent = parentId || null;
+  if (parentId) {
+    if (!S.childMap[parentId]) S.childMap[parentId] = [];
+    S.childMap[parentId].push(node.id);
+  } else {
+    S.rootIds.push(node.id);
+  }
+}
+function removeNode(id) {
+  const node = S.nodes[id];
+  if (!node) return;
+  // Remove from parent
+  if (node.parent) {
+    S.childMap[node.parent] = (S.childMap[node.parent] || []).filter(x => x !== id);
+  } else {
+    S.rootIds = S.rootIds.filter(x => x !== id);
+  }
+  // Remove children recursively
+  (S.childMap[id] || []).slice().forEach(cid => removeNode(cid));
+  delete S.childMap[id];
+  delete S.nodes[id];
+  delete S.fileData[id];
+}
+function getAllFileIds(parentId) {
+  let result = [];
+  const kids = parentId ? getChildren(parentId) : sortChildren(S.rootIds);
+  for (const id of kids) {
+    const n = S.nodes[id];
+    if (n.type === 'file') result.push(id);
+    else result = result.concat(getAllFileIds(id));
+  }
+  return result;
+}
+
+// ── Editor ────────────────────────────────────────────────
+const editor = {
+  init() {
+    S.cm = CodeMirror.fromTextArea(document.getElementById('cm-editor'), {
+      mode: 'php', theme: 'dracula',
+      lineNumbers: true, lineWrapping: true,
+      autoCloseBrackets: true, matchBrackets: true,
+      autoCloseTags: true, styleActiveLine: true,
+      tabSize: 2, indentUnit: 2, indentWithTabs: false,
+      foldGutter: true,
+      gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
+      extraKeys: {
+        'Ctrl-Space':    () => IDE.ai.run('complete'),
+        'Ctrl-U':        () => IDE.chat.toggle(true),
+        'Ctrl-S':        () => IDE.fs.saveActive(),
+        'Ctrl-Shift-S':  () => IDE.fs.saveToDisk(),
+        'Ctrl-/':        cm => cm.execCommand('toggleComment'),
+        'Alt-F':         () => IDE.ai.run('fix'),
+        'Alt-E':         () => IDE.ai.run('explain'),
+        'Alt-R':         () => IDE.ai.run('review'),
+        'Alt-Shift-F':   () => IDE.ai.run('format'),
+        'Ctrl-Shift-T':  () => IDE.theme.toggle(),
+        'Ctrl-B':        () => IDE.sb.toggle(),
+        'Ctrl-N':        () => IDE.fs.newFilePrompt(null),
+        'Ctrl-H':        cm => cm.execCommand('findPersistentFromStart'),
+        'Alt-Shift-D':   cm => {
+          const ln = cm.getCursor().line;
+          cm.replaceRange('\n' + cm.getLine(ln), CodeMirror.Pos(ln));
+        },
+        'Alt-Up':   cm => cm.execCommand('swapLineUp'),
+        'Alt-Down': cm => cm.execCommand('swapLineDown'),
+        'Tab': cm => {
+          if (cm.somethingSelected()) cm.indentSelection('add');
+          else cm.replaceSelection('  ');
+        },
+      },
+    });
+    S.cm.on('cursorActivity', () => {
+      const c = S.cm.getCursor();
+      $('#si-cur').text(`Ln ${c.line+1}, Col ${c.ch+1}`);
+      $('#si-lines').text(S.cm.lineCount() + ' lines');
+    });
+    S.cm.on('change', () => {
+      $('#si-lines').text(S.cm.lineCount() + ' lines');
+      if (S.activeFileId) {
+        const d = S.fileData[S.activeFileId];
+        if (d) {
+          const cur = S.cm.getValue();
+          d.content = cur;
+          const dirty = cur !== d.savedContent;
+          $(`.tab[data-id="${S.activeFileId}"]`).toggleClass('dirty', dirty);
+          if (dirty) $('#si-save').html('<span style="color:var(--aco)">●</span> Unsaved');
+          else $('#si-save').html('<span style="color:var(--acg)">✓</span> Saved');
+        }
+      }
+      IDE.probs.lintDebounced();
+    });
+    setTimeout(() => S.cm.refresh(), 120);
+  },
+  setLang(lang) {
+    S.cm.setOption('mode', lang);
+    $('#langSel').val(lang);
+    $('#si-lang').text(LANG_LABEL[lang] || lang);
+    if (S.activeFileId && S.fileData[S.activeFileId]) S.fileData[S.activeFileId].lang = lang;
+    IDE.probs.lintDebounced();
+  },
+  getSelOrAll() {
+    const sel = S.cm.getSelection();
+    if (sel && sel.trim()) return { text: sel, isSel: true };
+    return { text: S.cm.getValue(), isSel: false };
+  },
+};
+
+// ── File System ───────────────────────────────────────────
+const fs = {
+  // ── Open Folder (File System Access API first, fallback to <input>) ──
+  async openFolder() {
+    // Try File System Access API (Chrome/Edge)
+    if (window.showDirectoryPicker) {
+      try {
+        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        S.fsDirectoryHandle = dirHandle;
+        S.projectName = dirHandle.name;
+        S.nodes = {}; S.fileData = {}; S.rootIds = []; S.childMap = {};
+        S.openTabIds = []; S.activeFileId = null;
+        S.cm.setValue('');
+        await this._loadFSDirectory(dirHandle, null, 0);
+        this.renderTree(); this.renderTabs();
+        $('#sb-proj-name').text(S.projectName.toUpperCase());
+        toast(`Opened: ${S.projectName}`, 'success');
+        // Open first file
+        const first = getAllFileIds(null)[0];
+        if (first) this.openFile(first);
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return; // user cancelled
+        // fallback
+      }
+    }
+    // Fallback: <input type="file" multiple>
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.multiple = true;
+    inp.accept = '.php,.js,.ts,.jsx,.tsx,.py,.html,.htm,.css,.sql,.sh,.bash,.yaml,.yml,.xml,.json,.md,.txt,.java,.c,.cpp,.h,.vue,.blade.php';
+    inp.onchange = async (e) => {
+      const files = Array.from(e.target.files);
+      if (!files.length) return;
+      S.nodes = {}; S.fileData = {}; S.rootIds = []; S.childMap = {};
+      S.openTabIds = []; S.activeFileId = null; S.cm.setValue('');
+      S.fsDirectoryHandle = null;
+      // Build tree from webkitRelativePath
+      for (const f of files) {
+        const path = f.webkitRelativePath || f.name;
+        const parts = path.split('/').filter(Boolean);
+        let parentId = null;
+        // Create folder nodes
+        for (let i = 0; i < parts.length - 1; i++) {
+          const fn = parts[i];
+          const existing = getChildren(parentId).find(id => S.nodes[id].name === fn && S.nodes[id].type === 'folder');
+          if (existing) { parentId = existing; continue; }
+          const fid = uid();
+          addNode({ id:fid, name:fn, type:'folder', open:i<2 }, parentId);
+          parentId = fid;
+        }
+        const fname = parts[parts.length - 1];
+        const fid = uid();
+        addNode({ id:fid, name:fname, type:'file' }, parentId);
+        const text = await f.text();
+        S.fileData[fid] = { content:text, savedContent:text, lang:EXT_LANG[fname.split('.').pop().toLowerCase()]||'php' };
+      }
+      S.projectName = files[0].webkitRelativePath ? files[0].webkitRelativePath.split('/')[0] : 'Project';
+      $('#sb-proj-name').text(S.projectName.toUpperCase());
+      this.renderTree(); this.renderTabs();
+      const first = getAllFileIds(null)[0];
+      if (first) this.openFile(first);
+      toast(`Loaded ${files.length} file(s)`, 'success');
+    };
+    inp.click();
+  },
+
+  async _loadFSDirectory(dirHandle, parentId, depth) {
+    const SKIP = new Set(['node_modules','.git','vendor','.DS_Store','.idea','dist','build','.next','__pycache__']);
+    const MAX_DEPTH = 8;
+    if (depth > MAX_DEPTH) return;
+    const entries = [];
+    for await (const entry of dirHandle.values()) entries.push(entry);
+    // Sort: folders first, then files
+    entries.sort((a,b) => {
+      if (a.kind !== b.kind) return a.kind === 'directory' ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+    for (const entry of entries) {
+      if (SKIP.has(entry.name) || entry.name.startsWith('.')) continue;
+      const nid = uid();
+      if (entry.kind === 'directory') {
+        addNode({ id:nid, name:entry.name, type:'folder', open:depth<1, fsHandle:entry }, parentId);
+        await this._loadFSDirectory(entry, nid, depth+1);
+      } else {
+        const ext = entry.name.split('.').pop().toLowerCase();
+        if (!EXT_LANG[ext] && !['txt','md','json','svg'].includes(ext)) continue;
+        addNode({ id:nid, name:entry.name, type:'file', fsHandle:entry }, parentId);
+        S.fileData[nid] = { content:null, savedContent:null, lang:EXT_LANG[ext]||'php', fsHandle:entry };
+      }
+    }
+  },
+
+  async _loadFileContent(id) {
+    const d = S.fileData[id];
+    if (!d) return '';
+    if (d.content !== null) return d.content;
+    // Load from FS handle
+    if (d.fsHandle) {
+      try {
+        const file = await d.fsHandle.getFile();
+        const text = await file.text();
+        d.content = text; d.savedContent = text;
+        return text;
+      } catch(e) { d.content = ''; d.savedContent = ''; return ''; }
+    }
+    d.content = ''; d.savedContent = '';
+    return '';
+  },
+
+  // ── Open / Close tabs ──
+  async openFile(id) {
+    if (!S.nodes[id] || S.nodes[id].type !== 'file') return;
+    // Save current
+    if (S.activeFileId && S.fileData[S.activeFileId]) {
+      S.fileData[S.activeFileId].content = S.cm.getValue();
+    }
+    S.activeFileId = id;
+    if (!S.openTabIds.includes(id)) S.openTabIds.push(id);
+    const d = S.fileData[id];
+    if (!d) return;
+    const content = await this._loadFileContent(id);
+    S.cm.setValue(content);
+    const lang = d.lang || 'php';
+    S.cm.setOption('mode', lang);
+    editor.setLang(lang);
+    this.renderTabs();
+    this.renderTree();
+    // Save indicator
+    const dirty = d.content !== d.savedContent;
+    if (dirty) $('#si-save').html('<span style="color:var(--aco)">●</span> Unsaved');
+    else $('#si-save').html('<span style="color:var(--acg)">✓</span> Saved');
+    setTimeout(() => { S.cm.refresh(); S.cm.focus(); }, 40);
+    IDE.probs.lintDebounced();
+  },
+
+  closeTab(id) {
+    S.openTabIds = S.openTabIds.filter(x => x !== id);
+    if (S.activeFileId === id) {
+      S.activeFileId = S.openTabIds.length ? S.openTabIds[S.openTabIds.length - 1] : null;
+      if (S.activeFileId) this.openFile(S.activeFileId);
+      else { S.cm.setValue(''); $('#si-save').text(''); }
+    }
+    this.renderTabs();
+  },
+
+  // ── Save (in-memory + optional disk write) ──
+  saveActive() {
+    if (!S.activeFileId) { toast('No file open', 'warning'); return; }
+    const cur = S.cm.getValue();
+    const d = S.fileData[S.activeFileId];
+    if (!d) return;
+    d.content = cur;
+    d.savedContent = cur;
+    $(`.tab[data-id="${S.activeFileId}"]`).removeClass('dirty');
+    $('#si-save').html('<span style="color:var(--acg)">✓</span> Saved');
+    // Write to disk if FS handle available
+    this._writeToDisk(S.activeFileId, cur);
+    toast('Saved', 'success');
+    setStatus('Saved', 'ok');
+    setTimeout(() => setStatus('Ready'), 2000);
+  },
+
+  saveAll() {
+    let count = 0;
+    for (const id of S.openTabIds) {
+      const d = S.fileData[id];
+      if (!d) continue;
+      const cur = id === S.activeFileId ? S.cm.getValue() : d.content;
+      if (cur !== null && cur !== d.savedContent) {
+        d.content = cur; d.savedContent = cur;
+        $(`.tab[data-id="${id}"]`).removeClass('dirty');
+        this._writeToDisk(id, cur);
+        count++;
+      }
+    }
+    $('#si-save').html('<span style="color:var(--acg)">✓</span> All saved');
+    toast(count ? `Saved ${count} file(s)` : 'All up to date', 'success');
+  },
+
+  async saveToDisk() {
+    if (!S.activeFileId) return;
+    const cur = S.cm.getValue();
+    const d = S.fileData[S.activeFileId];
+    if (!d) return;
+    d.content = cur; d.savedContent = cur;
+    if (d.fsHandle) {
+      await this._writeToDisk(S.activeFileId, cur);
+      toast('Written to disk', 'success');
+    } else {
+      // download
+      const node = S.nodes[S.activeFileId];
+      const blob = new Blob([cur], { type:'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = node.name; a.click();
+      URL.revokeObjectURL(a.href);
+    }
+  },
+
+  async _writeToDisk(id, content) {
+    const d = S.fileData[id];
+    if (!d || !d.fsHandle) return;
+    try {
+      const writable = await d.fsHandle.createWritable();
+      await writable.write(content);
+      await writable.close();
+    } catch(e) { /* silent - may be blocked if not FS API */ }
+  },
+
+  // ── New File / Folder ──
+  newFilePrompt(parentId) {
+    this._showNFModal('New File', 'File name', 'untitled.php', () => {
+      const name = $('#nf-input').val().trim() || 'untitled.php';
+      this._createFile(name, parentId);
+    });
+  },
+  newFolderPrompt(parentId) {
+    this._showNFModal('New Folder', 'Folder name', 'new-folder', () => {
+      const name = $('#nf-input').val().trim() || 'new-folder';
+      this._createFolder(name, parentId);
+    });
+  },
+  _showNFModal(title, label, val, onConfirm) {
+    $('#nf-title').text(title); $('#nf-label').text(label); $('#nf-input').val(val);
+    const m = new bootstrap.Modal(document.getElementById('nfModal'));
+    m.show();
+    setTimeout(() => { $('#nf-input').select(); }, 300);
+    $('#nf-ok').off('click').on('click', () => { m.hide(); onConfirm(); });
+    $('#nf-input').off('keydown').on('keydown', e => { if(e.key==='Enter') { m.hide(); onConfirm(); } });
+  },
+  _createFile(name, parentId) {
+    const ext = name.split('.').pop().toLowerCase();
+    const lang = EXT_LANG[ext] || 'php';
+    const content = STARTERS[lang] || '// Start coding\n';
+    const id = uid();
+    addNode({ id, name, type:'file' }, parentId || null);
+    S.fileData[id] = { content, savedContent: '', lang };
+    // Expand parent
+    if (parentId && S.nodes[parentId]) S.nodes[parentId].open = true;
+    this.renderTree(); this.openFile(id);
+  },
+  _createFolder(name, parentId) {
+    const id = uid();
+    addNode({ id, name, type:'folder', open:true }, parentId || null);
+    if (parentId && S.nodes[parentId]) S.nodes[parentId].open = true;
+    this.renderTree();
+  },
+  renamePrompt(id) {
+    const node = S.nodes[id];
+    if (!node) return;
+    const newName = prompt('Rename:', node.name);
+    if (!newName || newName.trim() === node.name) return;
+    node.name = newName.trim();
+    if (node.type === 'file') {
+      const ext = node.name.split('.').pop().toLowerCase();
+      const lang = EXT_LANG[ext] || 'php';
+      if (S.fileData[id]) S.fileData[id].lang = lang;
+    }
+    this.renderTree(); this.renderTabs();
+  },
+  deleteNode(id) {
+    const node = S.nodes[id];
+    if (!node) return;
+    if (!confirm(`Delete "${node.name}"?`)) return;
+    // Close tabs
+    const affectedFiles = node.type === 'file' ? [id] : getAllFileIds(id);
+    affectedFiles.forEach(fid => { S.openTabIds = S.openTabIds.filter(x => x !== fid); });
+    if (affectedFiles.includes(S.activeFileId)) {
+      S.activeFileId = S.openTabIds.length ? S.openTabIds[S.openTabIds.length - 1] : null;
+    }
+    removeNode(id);
+    this.renderTree(); this.renderTabs();
+    if (S.activeFileId) this.openFile(S.activeFileId);
+    else S.cm.setValue('');
+  },
+  collapseAll() {
+    Object.values(S.nodes).forEach(n => { if (n.type === 'folder') n.open = false; });
+    this.renderTree();
+  },
+
+  // ── Render Tree ──
+  renderTree() {
+    const tree = $('#file-tree');
+    tree.empty();
+    if (S.rootIds.length === 0) {
+      tree.html(`<div class="tree-empty"><i class="bi bi-folder2-open" style="font-size:22px;display:block;margin-bottom:6px"></i>No files open<br><small>Open Folder or New File</small></div>`);
+      return;
+    }
+    this._renderNodes(S.rootIds, tree, 0);
+  },
+  _renderNodes(ids, container, depth) {
+    const sorted = sortChildren(ids);
+    sorted.forEach(id => {
+      const node = S.nodes[id];
+      if (!node) return;
+      const indent = depth * 14 + 6;
+      const row = document.createElement('div');
+      row.className = 'tree-row' + (id === S.activeFileId ? ' active' : '');
+      row.setAttribute('data-id', id);
+      row.setAttribute('data-type', node.type);
+
+      if (node.type === 'folder') {
+        row.innerHTML = `
+          <span class="tr-indent" style="width:${indent}px"></span>
+          <span class="tr-chevron"><i class="bi bi-chevron-${node.open?'down':'right'}"></i></span>
+          <i class="bi bi-${node.open?'folder2-open':'folder2'} tr-icon" style="color:var(--acy)"></i>
+          <span class="tr-name">${escH(node.name)}</span>
+          <span class="tr-acts">
+            <button class="tra" title="New File" data-act="newfile"><i class="bi bi-file-plus"></i></button>
+            <button class="tra" title="New Folder" data-act="newfolder"><i class="bi bi-folder-plus"></i></button>
+            <button class="tra" title="Rename" data-act="rename"><i class="bi bi-pencil"></i></button>
+            <button class="tra" title="Delete" data-act="delete" style="color:var(--acr)"><i class="bi bi-trash"></i></button>
+          </span>`;
+        row.addEventListener('click', (e) => {
+          if (e.target.closest('.tr-acts')) return;
+          node.open = !node.open;
+          this.renderTree();
+        });
+      } else {
+        const dirty = S.fileData[id] && S.fileData[id].content !== S.fileData[id].savedContent;
+        row.innerHTML = `
+          <span class="tr-indent" style="width:${indent + 14}px"></span>
+          <span class="tr-chevron"></span>
+          <i class="bi bi-${nodeIcon(node)} tr-icon"></i>
+          <span class="tr-name">${escH(node.name)}${dirty?'<span style="color:var(--aco);font-size:8px;margin-left:3px">●</span>':''}</span>
+          <span class="tr-acts">
+            <button class="tra" title="Rename" data-act="rename"><i class="bi bi-pencil"></i></button>
+            <button class="tra" title="Delete" data-act="delete" style="color:var(--acr)"><i class="bi bi-trash"></i></button>
+          </span>`;
+        row.addEventListener('click', (e) => {
+          if (e.target.closest('.tr-acts')) return;
+          IDE.fs.openFile(id);
+        });
+      }
+
+      // Action buttons inside tree row
+      row.querySelectorAll('.tra').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const act = btn.getAttribute('data-act');
+          if (act === 'newfile') IDE.fs.newFilePrompt(id);
+          else if (act === 'newfolder') IDE.fs.newFolderPrompt(id);
+          else if (act === 'rename') IDE.fs.renamePrompt(id);
+          else if (act === 'delete') IDE.fs.deleteNode(id);
+        });
+      });
+
+      // Right-click context menu
+      row.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        IDE.ctxMenu.show(e, id);
+      });
+
+      container.append(row);
+      // Render children if folder is open
+      if (node.type === 'folder' && node.open && S.childMap[id] && S.childMap[id].length) {
+        this._renderNodes(S.childMap[id], container, depth + 1);
+      }
+    });
+  },
+
+  // ── Render Tabs ──
+  renderTabs() {
+    const bar = $('#tabs-bar');
+    bar.find('.tab').remove();
+    S.openTabIds.forEach(id => {
+      const node = S.nodes[id];
+      const d = S.fileData[id];
+      if (!node || !d) return;
+      const dirty = d.content !== d.savedContent;
+      const ext = nodeExt(node);
+      const icon = FILE_ICONS[ext] || 'file-code';
+      const tab = document.createElement('div');
+      tab.className = 'tab' + (id === S.activeFileId ? ' active' : '') + (dirty ? ' dirty' : '');
+      tab.setAttribute('data-id', id);
+      tab.innerHTML = `<i class="bi bi-${icon}" style="font-size:11px;color:var(--t3);flex-shrink:0"></i><span class="tn">${escH(node.name)}</span><span class="tc" data-close="${id}"><i class="bi bi-x"></i></span>`;
+      tab.addEventListener('click', (e) => {
+        if (e.target.closest('.tc')) return;
+        IDE.fs.openFile(id);
+      });
+      tab.querySelector('.tc').addEventListener('click', (e) => {
+        e.stopPropagation();
+        IDE.fs.closeTab(id);
+      });
+      bar.prepend(tab);
+    });
+  },
+};
+
+// ── Context Menu ──────────────────────────────────────────
+const ctxMenu = {
+  _targetId: null,
+  show(e, id) {
+    this._targetId = id;
+    const node = S.nodes[id];
+    const isFolder = node && node.type === 'folder';
+    $('#cm-new-file').toggle(isFolder);
+    $('#cm-new-folder').toggle(isFolder);
+    const menu = document.getElementById('ctx-menu');
+    menu.style.display = 'block';
+    menu.style.left = Math.min(e.clientX, window.innerWidth - 170) + 'px';
+    menu.style.top = Math.min(e.clientY, window.innerHeight - 140) + 'px';
+  },
+  hide() { document.getElementById('ctx-menu').style.display = 'none'; },
+  init() {
+    $('#cm-new-file').on('click', () => { IDE.fs.newFilePrompt(this._targetId); this.hide(); });
+    $('#cm-new-folder').on('click', () => { IDE.fs.newFolderPrompt(this._targetId); this.hide(); });
+    $('#cm-rename').on('click', () => { IDE.fs.renamePrompt(this._targetId); this.hide(); });
+    $('#cm-delete').on('click', () => { IDE.fs.deleteNode(this._targetId); this.hide(); });
+    $(document).on('click', () => this.hide());
+    $(document).on('keydown', e => { if(e.key === 'Escape') this.hide(); });
+  },
+};
+
+// ── Sidebar ───────────────────────────────────────────────
+const sb = {
+  toggle() { $('#sidebar').toggleClass('collapsed'); setTimeout(() => S.cm?.refresh(), 220); },
+  toggleSection(name) {
+    if (name === 'problems') {
+      const b = $('#problems-body');
+      b.is(':visible') ? b.hide() : b.show();
+      $('#prob-chev').toggleClass('bi-chevron-right bi-chevron-down');
+    }
+  },
+};
+
+// ── Problems / Lint ───────────────────────────────────────
+const probs = {
+  _timer: null,
+  lintDebounced() {
+    clearTimeout(this._timer);
+    this._timer = setTimeout(() => this.lint(), 1000);
+  },
+  lint() {
+    S.problems = [];
+    S.cm.getAllMarks().forEach(m => { if (m._errMark) m.clear(); });
+    const code = S.cm.getValue();
+    const lang = getLang();
+    if (lang === 'php') this._lintPHP(code);
+    else if (lang === 'javascript') this._lintJS(code);
+    else if (lang === 'python') this._lintPython(code);
+    else if (lang === 'css') this._lintCSS(code);
+    else if (lang === 'sql') this._lintSQL(code);
+    this._render();
+  },
+  _add(line, msg, sev) {
+    S.problems.push({ line: line - 1, msg, sev: sev || 'error' });
+    if (line > 0) {
+      const m = S.cm.markText({ line:line-1,ch:0 }, { line:line-1,ch:9999 }, { className: sev==='error'?'cm-err-line':'cm-warn-line' });
+      m._errMark = true;
+    }
+  },
+  _lintPHP(code) {
+    const lines = code.split('\n');
+    lines.forEach((l, i) => {
+      const ln = i + 1; const t = l.trim();
+      if (!t || t.startsWith('//') || t.startsWith('#') || t.startsWith('*') || t.startsWith('/*')) return;
+      if ((t.startsWith('$') || t.startsWith('return ') || t.startsWith('echo ')) && !t.endsWith('{') && !t.endsWith('}') && !t.endsWith(',') && !t.endsWith(';') && !t.endsWith('(') && !t.includes('//'))
+        this._add(ln, 'Possible missing semicolon', 'warning');
+      ['eval(','exec(','system(','shell_exec(','passthru('].forEach(f => { if (l.includes(f)) this._add(ln, `Dangerous: ${f}`, 'error'); });
+      if ((l.includes('$_GET')||l.includes('$_POST')||l.includes('$_REQUEST')) && (l.includes('SELECT')||l.includes('query(')))
+        this._add(ln, 'Potential SQL injection — use prepared statements', 'error');
+      if (t.startsWith('var_dump(') || t.startsWith('print_r(') || t.startsWith('dd(') || t.startsWith('dump('))
+        this._add(ln, 'Debug statement left in code', 'warning');
+      ['mysql_connect','mysql_query','mysql_fetch'].forEach(f => { if (l.includes(f)) this._add(ln, `Deprecated: ${f}()`, 'warning'); });
+    });
+  },
+  _lintJS(code) {
+    code.split('\n').forEach((l, i) => {
+      const ln = i+1; const t = l.trim();
+      if (!t || t.startsWith('//')) return;
+      if (t.includes('console.log(')) this._add(ln, 'console.log() left in code', 'warning');
+      if (t.includes('debugger')) this._add(ln, 'debugger statement', 'error');
+      if (t.startsWith('var ')) this._add(ln, 'Use const/let instead of var', 'warning');
+      if (t.includes('eval(')) this._add(ln, 'Avoid eval() — security risk', 'error');
+      if (t.includes('document.write(')) this._add(ln, 'Avoid document.write()', 'error');
+      if (/[^=!<>]==[^=]/.test(t) && !t.includes('=>')) this._add(ln, 'Use === instead of ==', 'warning');
+    });
+  },
+  _lintPython(code) {
+    code.split('\n').forEach((l, i) => {
+      const ln = i+1; const t = l.trim();
+      if (!t || t.startsWith('#')) return;
+      if (t.startsWith('print ') && !t.includes('(')) this._add(ln, 'Python 2 print — use print()', 'error');
+      if (/except\s*:/.test(t)) this._add(ln, 'Bare except: — catch specific exceptions', 'warning');
+      if (l.includes('\t')) this._add(ln, 'Tab indentation — use 4 spaces', 'warning');
+    });
+  },
+  _lintCSS(code) {
+    code.split('\n').forEach((l, i) => {
+      const ln = i+1; const t = l.trim();
+      if (!t || t.startsWith('/*')) return;
+      if (t.includes('!important')) this._add(ln, 'Avoid !important', 'warning');
+    });
+  },
+  _lintSQL(code) {
+    const up = code.toUpperCase();
+    if (/DELETE\b/.test(up) && !/WHERE\b/.test(up)) this._add(1, 'DELETE without WHERE — dangerous!', 'error');
+    if (/UPDATE\b/.test(up) && !/WHERE\b/.test(up)) this._add(1, 'UPDATE without WHERE — dangerous!', 'error');
+    code.split('\n').forEach((l, i) => { if (/SELECT\s+\*/i.test(l)) this._add(i+1, 'Avoid SELECT * — specify columns', 'warning'); });
+  },
+  _render() {
+    const errs = S.problems.filter(p => p.sev === 'error').length;
+    const warns = S.problems.filter(p => p.sev === 'warning').length;
+    const total = errs + warns;
+    // Status bar
+    if (total === 0) {
+      $('#ec').attr('class','si ok').html('<i class="bi bi-check-circle-fill"></i> No problems');
+    } else {
+      let h = '';
+      if (errs) h += `<i class="bi bi-x-circle-fill" style="color:var(--acr)"></i> ${errs} `;
+      if (warns) h += `<i class="bi bi-exclamation-triangle-fill" style="color:var(--acy)"></i> ${warns}`;
+      $('#ec').attr('class','si').html(h);
+    }
+    $('#prob-count').text(total ? `(${total})` : '');
+    // Sidebar problems
+    const body = $('#problems-body');
+    body.empty();
+    S.problems.forEach(p => {
+      const icon = p.sev==='error'
+        ? '<i class="bi bi-x-circle-fill prob-icon" style="color:var(--acr)"></i>'
+        : '<i class="bi bi-exclamation-triangle-fill prob-icon" style="color:var(--acy)"></i>';
+      const el = $(`<div class="prob-item">${icon}<span class="prob-msg">${escH(p.msg)}</span><span class="prob-ln">Ln ${p.line+1}</span></div>`);
+      el.on('click', () => { S.cm.setCursor({line:p.line,ch:0}); S.cm.focus(); });
+      body.append(el);
+    });
+  },
+  togglePanel() {
+    const b = $('#problems-body');
+    b.is(':visible') ? b.hide() : b.show();
+    $('#prob-chev').toggleClass('bi-chevron-right bi-chevron-down');
+  },
+};
+
+// ── Output Panel ──────────────────────────────────────────
+const panel = {
+  _lastOutput: '',
+  _lastAction: '',
+  show(title, content, action, provider) {
+    this._lastOutput = content;
+    this._lastAction = action;
+    $('#out-title-txt').text(title);
+    if (provider) {
+      const p = S.providers[provider];
+      $('#out-badge').attr('class','pbadge '+p.badge).text(provider.charAt(0).toUpperCase()+provider.slice(1));
+    }
+    const isCode = ['complete','fix','doc','format','refactor','optimize','tests','convert'].includes(action);
+    $('#out-body').html(
+      isCode
+        ? `<pre style="white-space:pre-wrap;line-height:1.65;font-family:var(--fmono);color:var(--t1)">${escH(content)}</pre>`
+        : `<pre style="white-space:pre-wrap;font-family:var(--fui);font-size:12.5px;line-height:1.7;color:var(--t1)">${escH(content)}</pre>`
+    );
+    $('#out-panel').addClass('open');
+    $('#applyBtn').toggle(isCode);
+  },
+  close() { $('#out-panel').removeClass('open'); },
+  copy() {
+    const t = this._lastOutput;
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject())
+      .catch(() => { const el=document.createElement('textarea');el.value=t;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el); });
+    toast('Copied', 'success');
+  },
+  apply() {
+    if (!this._lastOutput) return;
+    const clean = this._lastOutput.replace(/^```[\w]*\n?/gm,'').replace(/```\s*$/gm,'').trim();
+    const {isSel} = editor.getSelOrAll();
+    if (isSel) S.cm.replaceSelection(clean);
+    else S.cm.setValue(clean);
+    // Mark unsaved
+    if (S.activeFileId && S.fileData[S.activeFileId]) {
+      S.fileData[S.activeFileId].content = S.cm.getValue();
+    }
+    S.cm.focus();
+    this.close();
+    toast('Applied to editor', 'success');
+    IDE.probs.lintDebounced();
+  },
+};
+
+// ── AI API ────────────────────────────────────────────────
+const aiApi = {
+  async call(provider, userMsg, sysMsg) {
+    const key = getKey(provider);
+    if (!key) throw { type:'no_key' };
+    const p = S.providers[provider];
+    const temp = getTemp();
+
+    if (provider === 'gemini') {
+      const contents = [];
+      if (sysMsg) {
+        contents.push({ role:'user', parts:[{text:sysMsg}] });
+        contents.push({ role:'model', parts:[{text:'Understood. I will follow these instructions precisely.'}] });
+      }
+      contents.push({ role:'user', parts:[{text:userMsg}] });
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${p.model}:generateContent?key=${key}`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ contents, generationConfig:{ maxOutputTokens:4096, temperature:temp, topP:0.9 } })
+      });
+      if (r.status === 429) throw { type:'ex' };
+      if (!r.ok) throw { type:'err', msg:`Gemini ${r.status}` };
+      const d = await r.json();
+      if (d.error) throw { type:'err', msg:d.error.message };
+      return d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    }
+
+    if (provider === 'mistral') {
+      const msgs = sysMsg ? [{role:'system',content:sysMsg}] : [];
+      msgs.push({ role:'user', content:userMsg });
+      const r = await fetch('https://api.mistral.ai/v1/chat/completions', {
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+        body: JSON.stringify({ model:p.model, messages:msgs, max_tokens:4096, temperature:temp })
+      });
+      if (r.status === 429) throw { type:'ex' };
+      if (!r.ok) throw { type:'err', msg:`Mistral ${r.status}` };
+      const d = await r.json();
+      return d.choices?.[0]?.message?.content || '';
+    }
+
+    if (provider === 'groq') {
+      const msgs = sysMsg ? [{role:'system',content:sysMsg}] : [];
+      msgs.push({ role:'user', content:userMsg });
+      const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+        body: JSON.stringify({ model:p.model, messages:msgs, max_tokens:4096, temperature:temp })
+      });
+      if (r.status === 429) throw { type:'ex' };
+      if (!r.ok) throw { type:'err', msg:`Groq ${r.status}` };
+      const d = await r.json();
+      return d.choices?.[0]?.message?.content || '';
+    }
+  },
+
+  async callWithFallback(userMsg, sysMsg) {
+    const avail = providerOrder();
+    if (!avail.length) throw { type:'no_providers' };
+    let lastErr = null;
+    for (let i = 0; i < avail.length; i++) {
+      const p = avail[i];
+      updateProvUI(p);
+      showProg(15 + i * 25);
+      try {
+        const result = await this.call(p, userMsg, sysMsg);
+        setProvSt(p, 'ok');
+        return { result, provider: p };
+      } catch(e) {
+        if (e.type === 'ex') { S.providers[p].ex = true; setProvSt(p, 'ex'); toast(`${S.providers[p].name} rate limited — switching…`,'warning'); }
+        else if (e.type !== 'no_key') { setProvSt(p, 'err'); toast(`${S.providers[p].name} error — trying next…`,'warning'); }
+        lastErr = e;
+      }
+    }
+    throw lastErr || { type:'all_failed' };
+  },
+};
+
+// ── AI Actions ────────────────────────────────────────────
+const SYSTEM_BASE = (lang) => {
+  const friendly = LANG_FRIENDLY[lang] || lang;
+  return `You are a world-class ${friendly} developer and AI coding assistant with expert-level knowledge.
+
+CRITICAL RULES — follow without exception:
+1. For CODE outputs (complete/fix/format/refactor/optimize/doc/tests/convert): return ONLY raw code. NO markdown fences (\`\`\`), NO preamble text, NO explanation after the code. Just the code itself.
+2. For EXPLANATION/REVIEW outputs: use clear bullet points, be technical and precise.
+3. Preserve existing indentation style and coding conventions from the input.
+4. NEVER remove or break working functionality unless explicitly asked.
+5. For PHP/Laravel: follow PSR-12, use Eloquent best practices, proper validation, security (prepared statements, CSRF, XSS prevention).
+6. For JavaScript: ES6+, avoid deprecated patterns (var, ==), handle errors properly.
+7. For Python: PEP 8, type hints, proper error handling.
+8. Code quality: production-ready, no debug statements, no TODOs unless asked.
+9. Security: no eval(), no SQL injection risks, validate all input.
+10. Accuracy over speed — take the time to get it right.`;
+};
+
+const AI_META = {
+  complete: { title:'⚡ Autocomplete',   label:'Autocomplete',   btn:'b-complete', isCode:true,
+    prompt:(code,lang)=>`Continue and complete this ${LANG_FRIENDLY[lang]||lang} code. Start from exactly where it left off. Match the exact coding style:\n\n${code}` },
+  fix:      { title:'🔧 Fixed Code',     label:'Fix',            btn:'b-fix',      isCode:true,
+    prompt:(code,lang)=>`Fix ALL bugs, syntax errors, logic errors, and security issues in this ${LANG_FRIENDLY[lang]||lang} code. Return the complete corrected code:\n\n${code}` },
+  explain:  { title:'💡 Explanation',    label:'Explain',        btn:'b-explain',  isCode:false,
+    prompt:(code,lang)=>`Explain this ${LANG_FRIENDLY[lang]||lang} code. Cover: what it does, how it works, key functions/classes, any issues, time/space complexity if relevant:\n\n${code}` },
+  doc:      { title:'📝 Documented',     label:'Add Docs',       btn:'b-doc',      isCode:true,
+    prompt:(code,lang)=>`Add comprehensive PHPDoc/JSDoc/docstrings and inline comments to this ${LANG_FRIENDLY[lang]||lang} code. Document all functions, classes, parameters, return types:\n\n${code}` },
+  review:   { title:'🛡 Code Review',   label:'Review',         btn:'b-review',   isCode:false,
+    prompt:(code,lang)=>`Review this ${LANG_FRIENDLY[lang]||lang} code. For each issue use: 🔴 Critical | 🟡 Warning | 🟢 Suggestion. Cover security, performance, readability, best practices:\n\n${code}` },
+  format:   { title:'✨ Formatted',      label:'Format',         btn:'b-format',   isCode:true,
+    prompt:(code,lang)=>`Format this ${LANG_FRIENDLY[lang]||lang} code following the official style guide. Fix indentation, spacing, blank lines. Return ONLY the formatted code:\n\n${code}` },
+  refactor: { title:'♻ Refactored',     label:'Refactor',       btn:'b-refactor', isCode:true,
+    prompt:(code,lang)=>`Refactor this ${LANG_FRIENDLY[lang]||lang} code: improve structure, readability, apply SOLID principles and design patterns where appropriate. Add a 2-line comment at the top explaining what changed:\n\n${code}` },
+  optimize: { title:'⚡ Optimized',      label:'Optimize',       btn:'b-optimize', isCode:true,
+    prompt:(code,lang)=>`Optimize this ${LANG_FRIENDLY[lang]||lang} code for performance. Fix N+1 queries, improve algorithms, reduce complexity. Add a comment about what was improved:\n\n${code}` },
+  tests:    { title:'🧪 Unit Tests',     label:'Generate Tests', btn:'b-tests',    isCode:true,
+    prompt:(code,lang)=>`Write comprehensive unit tests for this ${LANG_FRIENDLY[lang]||lang} code using the standard framework (PHPUnit/Pest for PHP, Jest for JS, pytest for Python). Cover happy path, edge cases, and error cases:\n\n${code}` },
+  convert:  { title:'🔄 Converted',     label:'Convert',        btn:'b-convert',  isCode:true,
+    prompt:(code,lang,extra)=>`Convert this code to ${extra}. Maintain all functionality. Return ONLY the converted code:\n\n${code}` },
+};
+
+const ai = {
+  async run(action) {
+    if (S.isLoading) return;
+    const { text, isSel } = editor.getSelOrAll();
+    if (!text.trim()) { toast('No code to process', 'warning'); return; }
+    const avail = providerOrder();
+    if (!avail.length) {
+      panel.show('⚠ No API Key', 'Add at least one API key in Settings.\n\nFree keys:\n• Gemini: aistudio.google.com/apikey\n• Mistral: console.mistral.ai/api-keys\n• Groq: console.groq.com/keys', action, 'gemini');
+      toast('No API key — open Settings', 'error'); return;
+    }
+    const meta = AI_META[action];
+    const lang = getLang();
+    let extra = '';
+    if (action === 'convert') {
+      extra = prompt('Convert to what? (e.g. TypeScript, Python, Vue 3, React)');
+      if (!extra) return;
+    }
+    const userPrompt = meta.prompt(text, lang, extra);
+    const sysPrompt = SYSTEM_BASE(lang);
+
+    S.isLoading = true;
+    disableAi(true);
+    const btn = $('#' + meta.btn);
+    const origHtml = btn.html();
+    btn.html(`<i class="bi bi-arrow-repeat spin"></i> ${meta.label}…`);
+    setStatus(`${meta.label}…`, 'loading');
+    showProg(10);
+
+    try {
+      const { result, provider } = await aiApi.callWithFallback(userPrompt, sysPrompt);
+      showProg(100);
+      const clean = result.replace(/^```[\w]*\n?/gm,'').replace(/```\s*$/gm,'').trim();
+      panel.show(meta.title, clean, action, provider);
+      setStatus(`${meta.label} done`, 'ok');
+      setTimeout(() => setStatus('Ready'), 3000);
+      toast(`${meta.label} complete ✓`, 'success');
+    } catch(e) {
+      const msg = e.type === 'no_providers' ? 'No API keys configured.'
+        : e.type === 'all_failed' ? 'All providers failed. Check keys or network.'
+        : (e.msg || 'Request failed');
+      panel.show('⚠ Error', msg, action, 'gemini');
+      setStatus('Failed', 'err');
+      setTimeout(() => setStatus('Ready'), 4000);
+      toast(msg, 'error');
+    } finally {
+      S.isLoading = false;
+      disableAi(false);
+      btn.html(origHtml);
+      showProg(0);
+    }
+  },
+};
+
+// ── AI Chat ───────────────────────────────────────────────
+const chat = {
+  toggle(captureCtx) {
+    S.chatOpen = !S.chatOpen;
+    if (S.chatOpen) {
+      $('#chat-win').addClass('show');
+      if (captureCtx) {
+        const { text, isSel } = editor.getSelOrAll();
+        if (text.trim()) {
+          S.chatCtx = text;
+          S.chatCtxLabel = isSel ? 'selection' : 'full file';
+          const lines = text.split('\n').length;
+          $('#ctx-bar').addClass('has');
+          $('#ctx-txt').text(`Context: ${S.chatCtxLabel} (${lines} lines)`);
+        }
+      }
+      setTimeout(() => document.getElementById('chat-in').focus(), 200);
+    } else {
+      $('#chat-win').removeClass('show');
+    }
+  },
+  clearCtx() {
+    S.chatCtx = null; S.chatCtxLabel = '';
+    $('#ctx-bar').removeClass('has');
+    $('#ctx-txt').text('No code context');
+  },
+  clear() {
+    S.chatHistory = [];
+    $('#chat-msgs').empty();
+    this._addMsg('ai', '🗑 Chat cleared. Ask me anything!');
+  },
+  _addMsg(role, text, isCode) {
+    const div = document.createElement('div');
+    div.className = 'cm' + (role === 'ai' ? ' ai' : '');
+    const roleLabel = role === 'user' ? 'You' : 'AI Assistant';
+    if (isCode) {
+      div.innerHTML = `<div class="cr">${roleLabel}</div><div class="cc">${escH(text)}</div>`;
+      const acts = document.createElement('div');
+      acts.className = 'cc-acts';
+      // Apply button
+      const applyBtn = document.createElement('button');
+      applyBtn.className = 'cca';
+      applyBtn.innerHTML = '<i class="bi bi-arrow-return-left"></i> Apply to Editor';
+      applyBtn.addEventListener('click', () => {
+        const clean = text.replace(/^```[\w]*\n?/gm,'').replace(/```\s*$/gm,'').trim();
+        const { isSel } = editor.getSelOrAll();
+        if (isSel && S.chatCtx) S.cm.replaceSelection(clean);
+        else S.cm.setValue(clean);
+        if (S.activeFileId && S.fileData[S.activeFileId]) S.fileData[S.activeFileId].content = S.cm.getValue();
+        S.cm.focus();
+        toast('Applied to editor', 'success');
+        IDE.probs.lintDebounced();
+      });
+      // Copy button
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'cca cp';
+      copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Copy';
+      copyBtn.addEventListener('click', () => {
+        (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
+          .catch(()=>{const el=document.createElement('textarea');el.value=text;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);});
+        toast('Copied','success');
+      });
+      acts.append(applyBtn, copyBtn);
+      div.append(acts);
+    } else {
+      div.innerHTML = `<div class="cr">${roleLabel}</div><div class="ct">${escH(text)}</div>`;
+    }
+    const msgs = document.getElementById('chat-msgs');
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return div;
+  },
+  _thinking() {
+    const div = document.createElement('div');
+    div.className = 'cm ai';
+    div.innerHTML = '<div class="cr">AI Assistant</div><div class="ct" style="color:var(--t3)"><i class="bi bi-arrow-repeat spin"></i> Thinking…</div>';
+    const msgs = document.getElementById('chat-msgs');
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return div;
+  },
+  _looksLikeCode(text) {
+    if (text.length < 25) return false;
+    return /^<\?php|^function\s|^class\s|public\s+function|def\s+\w+\(|^import\s|^from\s|^const\s|^let\s|^export\s|SELECT\s+|CREATE\s+|;\s*$|\{\s*\n/.test(text);
+  },
+  async send() {
+    const inp = document.getElementById('chat-in');
+    const msg = inp.value.trim();
+    if (!msg) return;
+    const avail = providerOrder();
+    if (!avail.length) { toast('No API key — open Settings','error'); return; }
+
+    let fullMsg = msg;
+    if (S.chatCtx) {
+      const lang = getLang();
+      fullMsg = `Code context (${S.chatCtxLabel} — ${LANG_FRIENDLY[lang]||lang}):\n\`\`\`${lang}\n${S.chatCtx}\n\`\`\`\n\nInstruction: ${msg}`;
+      this.clearCtx();
+    }
+
+    this._addMsg('user', msg);
+    S.chatHistory.push({ role:'user', content:fullMsg });
+    inp.value = ''; inp.style.height = 'auto';
+
+    const thinking = this._thinking();
+    $('#chat-send').prop('disabled', true);
+
+    const lang = getLang();
+    const sysPrompt = `You are an expert AI coding assistant (like Trae AI / Cursor). Rules:
+1. When writing code: return complete, working code with NO markdown fences
+2. When explaining: use bullet points, be technical and concise
+3. For ${LANG_FRIENDLY[lang]||lang}: follow best practices and conventions
+4. If code context is provided, apply changes to THAT code
+5. Maintain the user's coding style from context
+6. Be direct and practical — no fluff`;
+
+    const latestContent = S.chatHistory[S.chatHistory.length - 1].content;
+
+    try {
+      let result = '', usedProv = avail[0];
+      for (const p of avail) {
+        try {
+          result = await aiApi.call(p, latestContent, sysPrompt);
+          usedProv = p; updateProvUI(p);
+          break;
+        } catch(e) {
+          if (e.type === 'ex') { S.providers[p].ex = true; setProvSt(p, 'ex'); }
+          else if (e.type !== 'no_key') setProvSt(p, 'err');
+        }
+      }
+      if (!result) throw new Error('All providers failed');
+      thinking.remove();
+      const clean = result.replace(/^```[\w]*\n?/gm,'').replace(/```\s*$/gm,'').trim();
+      this._addMsg('ai', clean, this._looksLikeCode(clean));
+      S.chatHistory.push({ role:'assistant', content:clean });
+    } catch(e) {
+      thinking.remove();
+      this._addMsg('ai', '⚠ ' + (e.message || 'Request failed. Check API keys.'));
+    } finally {
+      $('#chat-send').prop('disabled', false);
+      setTimeout(() => inp.focus(), 80);
+    }
+  },
+};
+
+// ── Settings ──────────────────────────────────────────────
+const settings = {
+  load() {
+    ['gemini','mistral','groq'].forEach(p => {
+      $('#key-'+p).val(getKey(p));
+      if (getKey(p)) setProvSt(p,'ok');
+    });
+    $('#s-fontsize').val(localStorage.getItem('aiide_fontsize')||'14');
+    $('#s-tabsize').val(localStorage.getItem('aiide_tabsize')||'2');
+    $('#s-wrap').val(localStorage.getItem('aiide_wrap')||'on');
+    $('#s-aimode').val(localStorage.getItem('aiide_aimode')||'precise');
+  },
+  save() {
+    ['gemini','mistral','groq'].forEach(p => {
+      setKey(p, $('#key-'+p).val().trim());
+      if (getKey(p)) { S.providers[p].ex = false; setProvSt(p,'ok'); }
+    });
+    const fs_ = $('#s-fontsize').val();
+    const ts = parseInt($('#s-tabsize').val());
+    const ww = $('#s-wrap').val();
+    const am = $('#s-aimode').val();
+    localStorage.setItem('aiide_fontsize', fs_);
+    localStorage.setItem('aiide_tabsize', ts);
+    localStorage.setItem('aiide_wrap', ww);
+    localStorage.setItem('aiide_aimode', am);
+    S.cm.getWrapperElement().style.fontSize = fs_ + 'px';
+    S.cm.setOption('tabSize', ts);
+    S.cm.setOption('indentUnit', ts);
+    S.cm.setOption('lineWrapping', ww === 'on');
+    S.cm.refresh();
+    const avail = providerOrder();
+    if (avail.length) updateProvUI(avail[0]);
+    bootstrap.Modal.getInstance(document.getElementById('settingsModal'))?.hide();
+    toast('Settings saved', 'success');
+  },
+  applyToEditor() {
+    const fs_ = localStorage.getItem('aiide_fontsize') || '14';
+    const ts = parseInt(localStorage.getItem('aiide_tabsize') || '2');
+    const ww = localStorage.getItem('aiide_wrap') || 'on';
+    S.cm.getWrapperElement().style.fontSize = fs_ + 'px';
+    S.cm.setOption('tabSize', ts);
+    S.cm.setOption('indentUnit', ts);
+    S.cm.setOption('lineWrapping', ww === 'on');
+  },
+};
+
+// ── Theme ─────────────────────────────────────────────────
+const theme = {
+  toggle() {
+    S.theme = S.theme === 'dark' ? 'light' : 'dark';
+    $('html').attr('data-theme', S.theme);
+    S.cm.setOption('theme', S.theme === 'dark' ? 'dracula' : 'default');
+    $('#themeBtn i').attr('class', S.theme === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill');
+    localStorage.setItem('aiide_theme', S.theme);
+  },
+  init() {
+    const t = localStorage.getItem('aiide_theme') || 'dark';
+    if (t !== 'dark') {
+      S.theme = 'light';
+      $('html').attr('data-theme','light');
+      $('#themeBtn i').attr('class','bi bi-sun-fill');
+      S.cm?.setOption('theme','default');
+    }
+  },
+};
+
+// ── Resizer ───────────────────────────────────────────────
+function initResizer() {
+  let drag=false, startY=0, startH=0;
+  $('#resizer').on('mousedown', function(e) {
+    drag=true; startY=e.clientY;
+    startH = $('#out-panel').hasClass('open') ? $('#out-panel').height() : 0;
+    $(this).addClass('dragging'); e.preventDefault();
+  });
+  $(document).on('mousemove', function(e) {
+    if (!drag) return;
+    const diff = startY - e.clientY;
+    const newH = Math.max(80, Math.min(600, startH + diff));
+    if (newH > 80) $('#out-panel').addClass('open').height(newH);
+    else $('#out-panel').removeClass('open').height(0);
+  }).on('mouseup', () => { if(drag){ drag=false; $('#resizer').removeClass('dragging'); } });
+}
+
+// ── Chat input auto-resize ────────────────────────────────
+function initChatInput() {
+  const inp = document.getElementById('chat-in');
+  inp.addEventListener('input', () => { inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,110)+'px'; });
+  inp.addEventListener('keydown', e => { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); IDE.chat.send(); } });
+}
+
+// ── Init ──────────────────────────────────────────────────
+function init() {
+  editor.init();
+  theme.init();
+  settings.load();
+  settings.applyToEditor();
+  initResizer();
+  initChatInput();
+  ctxMenu.init();
+  shortcutsTable();
+
+  // Default starter file
+  const id = uid();
+  addNode({ id, name:'app.php', type:'file' }, null);
+  S.fileData[id] = { content: STARTERS.php, savedContent: STARTERS.php, lang:'php' };
+  S.openTabIds.push(id);
+  S.activeFileId = id;
+  S.cm.setValue(STARTERS.php);
+  S.cm.setOption('mode','php');
+  fs.renderTree();
+  fs.renderTabs();
+
+  // Provider status
+  const avail = providerOrder();
+  if (avail.length) { updateProvUI(avail[0]); }
+  else {
+    setTimeout(() => toast('Welcome! Click API Keys to add your free keys.','info'), 900);
+    $('#si-prov').text('⚠ Set API key');
+  }
+
+  setStatus('Ready');
+  $('#si-lines').text(S.cm.lineCount() + ' lines');
+  document.getElementById('settingsModal').addEventListener('show.bs.modal', () => settings.load());
+
+  // Drag-over sidebar for file drop
+  document.getElementById('file-tree').addEventListener('dragover', e => e.preventDefault());
+  document.getElementById('file-tree').addEventListener('drop', async (e) => {
+    e.preventDefault();
+    const items = e.dataTransfer.files;
+    if (!items.length) return;
+    for (const f of Array.from(items)) {
+      const ext = f.name.split('.').pop().toLowerCase();
+      if (!EXT_LANG[ext] && !['txt','md','json','svg'].includes(ext)) continue;
+      const text = await f.text();
+      const fid = uid();
+      addNode({id:fid,name:f.name,type:'file'}, null);
+      S.fileData[fid] = {content:text,savedContent:text,lang:EXT_LANG[ext]||'php'};
+      fs.openFile(fid);
+    }
+    fs.renderTree(); fs.renderTabs();
+  });
+
+  setTimeout(() => { S.cm.focus(); S.cm.refresh(); }, 300);
+}
+
+// ── Public API ────────────────────────────────────────────
+return { editor, fs, sb, probs, panel, ai, chat, settings, theme, ctxMenu, init };
+})();
+
+$(document).ready(() => IDE.init());
+</script>
+</body>
+</html>
