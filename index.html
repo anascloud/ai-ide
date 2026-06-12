@@ -665,12 +665,7 @@ const FILE_ICONS = {
   svg:'file-image', jpg:'file-image', png:'file-image',
 };
 const STARTERS = {
-  php:`<?php\n\nnamespace App\\Http\\Controllers;\n\nuse Illuminate\\Http\\Request;\nuse App\\Models\\User;\n\nclass UserController extends Controller\n{\n    /**\n     * Display listing of users.\n     */\n    public function index(Request $request)\n    {\n        $users = User::query()\n            ->when($request->search, fn($q, $s) => $q->where('name', 'like', "%{$s}%"))\n            ->latest()\n            ->paginate(15);\n\n        return view('users.index', compact('users'));\n    }\n\n    /**\n     * Store a new user.\n     */\n    public function store(Request $request)\n    {\n        $validated = $request->validate([\n            'name'     => 'required|string|max:255',\n            'email'    => 'required|email|unique:users',\n            'password' => 'required|min:8|confirmed',\n        ]);\n\n        User::create($validated);\n\n        return redirect()->route('users.index')->with('success', 'User created.');\n    }\n}\n`,
-  javascript:`'use strict';\n\nclass App {\n  constructor() {\n    this.init();\n  }\n\n  init() {\n    console.log('App started');\n  }\n}\n\nconst app = new App();\n`,
-  python:`from typing import Optional\n\n\ndef main() -> None:\n    \"\"\"Entry point.\"\"\"\n    pass\n\n\nif __name__ == '__main__':\n    main()\n`,
-  htmlmixed:`<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Document</title>\n</head>\n<body>\n\n</body>\n</html>\n`,
-  css:`*, *::before, *::after { box-sizing: border-box; }\n\nbody {\n  margin: 0;\n  font-family: sans-serif;\n}\n`,
-  sql:`SELECT *\nFROM table_name\nWHERE active = 1\nORDER BY created_at DESC\nLIMIT 10;\n`,
+  php:`Start to create a New file or Open Folder!`,
 };
 
 // ── Utilities ─────────────────────────────────────────────
