@@ -9,381 +9,555 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/theme/dracula.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/hint/show-hint.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/dialog/dialog.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/search/matchesonscrollbar.min.css">
 <style>
-:root{
-  --bg0:#0d1117;--bg1:#161b22;--bg2:#21262d;--bg3:#1c2128;
-  --bd:#30363d;--bd2:#444c56;
-  --ac:#58a6ff;--acg:#3fb950;--acy:#d29922;--acr:#f85149;--acp:#bc8cff;--aco:#f0883e;
-  --t1:#e6edf3;--t2:#8b949e;--t3:#484f58;
-  --sw:240px;--th:40px;--sh:22px;
+:root {
+  --bg0:#0e0f11; --bg1:#13141a; --bg2:#1a1b23; --bg3:#1e1f2a; --bg4:#252636;
+  --bd:#2a2b35; --bd2:#3a3b4a;
+  --ac:#7c6af7; --ac2:#3ecf8e; --acy:#f0c050; --acr:#f0544f; --aco:#f08a30; --acb:#4da6ff;
+  --t1:#e2e4ea; --t2:#8b8fa8; --t3:#4a4d60;
+  --sw:240px; --th:38px; --sh:22px;
   --fmono:'JetBrains Mono','Fira Code',Consolas,monospace;
-  --fui:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  --r:5px;
+  --fui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  --r:4px; --r2:6px;
+  --gutter-err: #f0544f; --gutter-warn: #f0c050; --gutter-info: #4da6ff;
 }
 [data-theme=light]{
-  --bg0:#ffffff;--bg1:#f6f8fa;--bg2:#eaeef2;--bg3:#f0f2f5;
-  --bd:#d0d7de;--bd2:#b0b7c0;
-  --ac:#0969da;--acg:#1a7f37;--acy:#9a6700;--acr:#cf222e;--acp:#8250df;--aco:#bc4c00;
-  --t1:#24292f;--t2:#57606a;--t3:#adb5bd;
+  --bg0:#f5f5f7; --bg1:#ffffff; --bg2:#f0f0f5; --bg3:#e8e8f0; --bg4:#e0e0ea;
+  --bd:#d0d0dc; --bd2:#b8b8cc;
+  --ac:#5b4de0; --ac2:#1a9e6a; --acy:#b08000; --acr:#cc2222; --aco:#c05000; --acb:#1a6fc4;
+  --t1:#1a1a2e; --t2:#555570; --t3:#a0a0b8;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--bg0);color:var(--t1)}
+html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--bg0);color:var(--t1);font-size:13px}
 #app{display:flex;flex-direction:column;height:100vh}
 #main{display:flex;flex:1;overflow:hidden}
-#editor-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+#editor-area{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 
-/* titlebar */
+/* ── TITLEBAR ─────────────────────────────────────────── */
 #titlebar{
   height:var(--th);background:var(--bg1);border-bottom:1px solid var(--bd);
-  display:flex;align-items:center;padding:0 8px;gap:4px;flex-shrink:0;z-index:200;user-select:none
+  display:flex;align-items:center;padding:0 6px;gap:2px;flex-shrink:0;z-index:200;
+  user-select:none;
 }
-.brand{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;margin-right:4px}
-.brand-logo{width:22px;height:22px;border-radius:4px;background:linear-gradient(135deg,var(--ac),var(--acp));display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:800}
-.tb{background:none;border:none;color:var(--t2);padding:3px 8px;border-radius:var(--r);font-size:11.5px;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap;transition:all .12s}
-.tb:hover{background:var(--bg2);color:var(--t1)}
-.tb-r{margin-left:auto;display:flex;align-items:center;gap:4px}
-.mpill{display:flex;align-items:center;gap:5px;padding:3px 9px;border:1px solid var(--bd);border-radius:20px;font-size:11px;cursor:pointer;background:var(--bg2);transition:all .12s}
+.brand{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;
+  padding:0 8px;color:var(--t1);letter-spacing:-.3px}
+.brand-logo{width:24px;height:24px;border-radius:5px;
+  background:linear-gradient(135deg,var(--ac),#a78bfa);
+  display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:800}
+.tb{background:none;border:none;color:var(--t2);padding:3px 8px;border-radius:var(--r);
+  font-size:11.5px;cursor:pointer;display:flex;align-items:center;gap:4px;
+  white-space:nowrap;transition:all .12s;height:28px}
+.tb:hover{background:var(--bg3);color:var(--t1)}
+.tb.active{background:var(--bg3);color:var(--ac)}
+.tb-sep{width:1px;height:16px;background:var(--bd);margin:0 3px;flex-shrink:0}
+.tb-r{margin-left:auto;display:flex;align-items:center;gap:3px}
+.mpill{display:flex;align-items:center;gap:5px;padding:3px 10px;
+  border:1px solid var(--bd);border-radius:20px;font-size:11px;cursor:pointer;
+  background:var(--bg2);transition:all .12s;height:26px}
 .mpill:hover{border-color:var(--ac)}
-.mdot{width:7px;height:7px;border-radius:50%}
+.mdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 
-/* sidebar */
+/* ── SIDEBAR ──────────────────────────────────────────── */
 #sidebar{
   width:var(--sw);min-width:var(--sw);background:var(--bg1);border-right:1px solid var(--bd);
-  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:width .18s,min-width .18s
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;
+  transition:width .18s,min-width .18s
 }
-#sidebar.collapsed{width:0;min-width:0}
+#sidebar.collapsed{width:0;min-width:0;border-right:none}
+.sb-section{display:flex;flex-direction:column;flex:1;overflow:hidden}
 .sb-hdr{
-  padding:6px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  padding:5px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
   color:var(--t3);display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1px solid var(--bd);flex-shrink:0;user-select:none
+  border-bottom:1px solid var(--bd);flex-shrink:0;user-select:none;height:30px
 }
-.sb-hdr-title{display:flex;align-items:center;gap:5px;flex:1;cursor:pointer}
-.sb-hdr-acts{display:flex;gap:2px}
-.sib{background:none;border:none;color:var(--t3);cursor:pointer;padding:2px 5px;border-radius:3px;font-size:12px;line-height:1;transition:all .1s}
-.sib:hover{color:var(--t1);background:var(--bg2)}
+.sb-hdr-title{display:flex;align-items:center;gap:5px;flex:1;cursor:pointer;overflow:hidden}
+.sb-hdr-acts{display:flex;gap:1px}
+.sib{background:none;border:none;color:var(--t3);cursor:pointer;padding:3px 5px;
+  border-radius:3px;font-size:12px;line-height:1;transition:all .1s}
+.sib:hover{color:var(--t1);background:var(--bg3)}
 #file-tree{flex:1;overflow-y:auto;overflow-x:hidden;padding:2px 0}
+.tree-empty{padding:24px 12px;font-size:12px;color:var(--t3);text-align:center;line-height:2}
 
 /* tree nodes */
-.tree-node{}
 .tree-row{
   display:flex;align-items:center;height:22px;cursor:pointer;
-  border-left:2px solid transparent;font-size:12.5px;color:var(--t2);
+  border-left:2px solid transparent;font-size:12px;color:var(--t2);
   position:relative;white-space:nowrap;overflow:hidden;
   transition:background .08s,color .08s
 }
 .tree-row:hover{background:rgba(255,255,255,.04);color:var(--t1)}
-.tree-row.active{background:rgba(88,166,255,.1);color:var(--ac);border-left-color:var(--ac)}
+.tree-row.active{background:rgba(124,106,247,.12);color:var(--ac);border-left-color:var(--ac)}
 [data-theme=light] .tree-row:hover{background:rgba(0,0,0,.04)}
-[data-theme=light] .tree-row.active{background:rgba(9,105,218,.08)}
-.tree-row .tr-indent{display:inline-block;flex-shrink:0}
-.tree-row .tr-chevron{width:14px;flex-shrink:0;font-size:9px;color:var(--t3);display:flex;align-items:center;justify-content:center}
-.tree-row .tr-icon{font-size:13px;flex-shrink:0;margin-right:4px}
-.tree-row .tr-name{flex:1;overflow:hidden;text-overflow:ellipsis;line-height:1}
-.tree-row .tr-acts{
+[data-theme=light] .tree-row.active{background:rgba(91,77,224,.1)}
+.tr-indent{display:inline-block;flex-shrink:0}
+.tr-chevron{width:14px;flex-shrink:0;font-size:8px;color:var(--t3);
+  display:flex;align-items:center;justify-content:center}
+.tr-icon{font-size:13px;flex-shrink:0;margin-right:4px}
+.tr-name{flex:1;overflow:hidden;text-overflow:ellipsis;line-height:1}
+.tr-acts{
   display:none;position:absolute;right:2px;top:50%;transform:translateY(-50%);
-  background:var(--bg2);border-radius:3px;padding:0 2px;gap:1px;align-items:center
+  background:var(--bg3);border-radius:3px;padding:0 2px;gap:1px;align-items:center
 }
 .tree-row:hover .tr-acts{display:flex}
-.tra{background:none;border:none;color:var(--t3);padding:2px 4px;cursor:pointer;font-size:10px;border-radius:2px;line-height:1}
+.tra{background:none;border:none;color:var(--t3);padding:2px 4px;
+  cursor:pointer;font-size:10px;border-radius:2px;line-height:1}
 .tra:hover{color:var(--t1);background:var(--bd)}
-.tree-empty{padding:20px 12px;font-size:12px;color:var(--t3);text-align:center;line-height:1.8}
 
-/* problems section */
-#problems-section{border-top:1px solid var(--bd);flex-shrink:0}
-#problems-body{max-height:130px;overflow-y:auto;display:none}
-.prob-item{display:flex;align-items:flex-start;gap:6px;padding:3px 10px;font-size:11.5px;cursor:pointer;transition:background .08s}
-.prob-item:hover{background:var(--bg2)}
+/* problems */
+#prob-section{border-top:1px solid var(--bd);flex-shrink:0;max-height:160px;overflow:hidden}
+.prob-hdr{padding:4px 8px;font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--t3);display:flex;align-items:center;gap:5px;
+  cursor:pointer;border-bottom:1px solid var(--bd);height:28px}
+.prob-hdr:hover{background:var(--bg2)}
+#prob-list{overflow-y:auto;max-height:120px}
+.prob-row{display:flex;align-items:flex-start;gap:6px;padding:3px 10px;
+  font-size:11px;cursor:pointer;transition:background .08s}
+.prob-row:hover{background:var(--bg3)}
 .prob-icon{flex-shrink:0;font-size:11px;margin-top:1px}
 .prob-msg{flex:1;color:var(--t1);line-height:1.4}
-.prob-ln{color:var(--t3);font-size:10px;flex-shrink:0}
+.prob-loc{color:var(--t3);font-size:10px;flex-shrink:0}
 
-/* tabs */
-#tabs-bar{height:34px;background:var(--bg1);border-bottom:1px solid var(--bd);display:flex;align-items:flex-end;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+/* ── TABS BAR ─────────────────────────────────────────── */
+#tabs-bar{
+  height:35px;background:var(--bg1);border-bottom:1px solid var(--bd);
+  display:flex;align-items:flex-end;overflow-x:auto;flex-shrink:0;scrollbar-width:none
+}
 #tabs-bar::-webkit-scrollbar{display:none}
 .tab{
-  display:flex;align-items:center;gap:5px;padding:0 10px;height:30px;min-width:90px;max-width:160px;
-  font-size:11.5px;color:var(--t2);cursor:pointer;flex-shrink:0;
-  border-right:1px solid var(--bd);border-top:2px solid transparent;
-  background:var(--bg1);white-space:nowrap;overflow:hidden;transition:all .1s
+  display:flex;align-items:center;gap:5px;padding:0 10px;height:33px;
+  min-width:90px;max-width:160px;font-size:11.5px;color:var(--t2);cursor:pointer;
+  flex-shrink:0;border-right:1px solid var(--bd);border-top:2px solid transparent;
+  background:var(--bg1);white-space:nowrap;overflow:hidden;transition:all .1s;
+  position:relative
 }
 .tab:hover{background:var(--bg2);color:var(--t1)}
 .tab.active{background:var(--bg0);color:var(--t1);border-top-color:var(--ac)}
 .tab .tn{flex:1;overflow:hidden;text-overflow:ellipsis}
-.tab.dirty .tn::after{content:' ●';color:var(--aco);font-size:8px}
-.tab .tc{opacity:0;font-size:10px;padding:1px 3px;border-radius:2px;flex-shrink:0}
+.tab.dirty .tn::after{content:'';width:7px;height:7px;border-radius:50%;
+  background:var(--aco);display:inline-block;margin-left:4px;vertical-align:middle}
+.tab .tc{opacity:0;font-size:10px;padding:1px 3px;border-radius:2px;flex-shrink:0;line-height:1}
 .tab:hover .tc,.tab.active .tc{opacity:.5}
-.tab .tc:hover{opacity:1!important;background:var(--bg2)}
-.tab-add{padding:0 10px;height:30px;display:flex;align-items:center;color:var(--t3);cursor:pointer;flex-shrink:0}
+.tab .tc:hover{opacity:1!important;background:var(--bg3)}
+.tab-add{padding:0 10px;height:33px;display:flex;align-items:center;
+  color:var(--t3);cursor:pointer;flex-shrink:0;font-size:14px}
 .tab-add:hover{color:var(--t1)}
 
-/* action bar */
-#action-bar{
-  display:flex;align-items:center;gap:4px;padding:4px 8px;
-  background:var(--bg3);border-bottom:1px solid var(--bd);flex-shrink:0;flex-wrap:wrap
+/* ── BREADCRUMB ───────────────────────────────────────── */
+#breadcrumb{
+  height:22px;background:var(--bg2);border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;padding:0 10px;gap:3px;flex-shrink:0;
+  font-size:11px;color:var(--t3);overflow:hidden
 }
-.ab{
+.bc-sep{font-size:10px;color:var(--t3)}
+.bc-item{color:var(--t2)}
+.bc-item:last-child{color:var(--t1)}
+
+/* ── TOOLBAR ──────────────────────────────────────────── */
+#toolbar{
+  display:flex;align-items:center;gap:3px;padding:4px 8px;
+  background:var(--bg1);border-bottom:1px solid var(--bd);flex-shrink:0;flex-wrap:wrap
+}
+.btn-ai{
   display:flex;align-items:center;gap:4px;border:1px solid var(--bd);border-radius:var(--r);
-  padding:3px 9px;font-size:11px;cursor:pointer;background:var(--bg2);color:var(--t1);
-  font-family:var(--fui);white-space:nowrap;transition:all .12s
+  padding:3px 10px;font-size:11px;cursor:pointer;background:var(--bg2);color:var(--t1);
+  font-family:var(--fui);white-space:nowrap;transition:all .12s;height:26px
 }
-.ab:hover{filter:brightness(1.2)}
-.ab:disabled{opacity:.35;cursor:not-allowed}
-.ab.c{border-color:var(--ac);color:var(--ac)}.ab.c:hover{background:var(--ac);color:#fff}
-.ab.g{border-color:var(--acg);color:var(--acg)}.ab.g:hover{background:var(--acg);color:#fff}
-.ab.y{border-color:var(--acy);color:var(--acy)}.ab.y:hover{background:var(--acy);color:#fff}
-.ab.p{border-color:var(--acp);color:var(--acp)}.ab.p:hover{background:var(--acp);color:#fff}
-.ab.o{border-color:var(--aco);color:var(--aco)}.ab.o:hover{background:var(--aco);color:#fff}
-.ab.r{border-color:var(--acr);color:var(--acr)}.ab.r:hover{background:var(--acr);color:#fff}
-.ab.t{border-color:#39d353;color:#39d353}.ab.t:hover{background:#39d353;color:#fff}
-.ab.v{border-color:#a78bfa;color:#a78bfa}.ab.v:hover{background:#a78bfa;color:#fff}
-.bsep{width:1px;height:16px;background:var(--bd);flex-shrink:0;margin:0 2px}
-.lsel{background:var(--bg2);border:1px solid var(--bd);color:var(--t1);border-radius:var(--r);padding:3px 6px;font-size:11px;cursor:pointer;outline:none}
+.btn-ai:hover{filter:brightness(1.2)}
+.btn-ai:disabled{opacity:.35;cursor:not-allowed}
+.btn-ai.c{border-color:var(--ac);color:var(--ac)}.btn-ai.c:hover{background:var(--ac);color:#fff}
+.btn-ai.g{border-color:var(--ac2);color:var(--ac2)}.btn-ai.g:hover{background:var(--ac2);color:#fff}
+.btn-ai.y{border-color:var(--acy);color:var(--acy)}.btn-ai.y:hover{background:var(--acy);color:#000}
+.btn-ai.p{border-color:#a78bfa;color:#a78bfa}.btn-ai.p:hover{background:#a78bfa;color:#fff}
+.btn-ai.o{border-color:var(--aco);color:var(--aco)}.btn-ai.o:hover{background:var(--aco);color:#fff}
+.btn-ai.r{border-color:var(--acr);color:var(--acr)}.btn-ai.r:hover{background:var(--acr);color:#fff}
+.btn-ai.b{border-color:var(--acb);color:var(--acb)}.btn-ai.b:hover{background:var(--acb);color:#fff}
+.btn-ai.agent{border-color:var(--ac);color:var(--ac);background:rgba(124,106,247,.1)}
+.btn-ai.agent:hover{background:var(--ac);color:#fff}
+.tsep{width:1px;height:16px;background:var(--bd);flex-shrink:0;margin:0 2px}
+.lsel{background:var(--bg2);border:1px solid var(--bd);color:var(--t1);
+  border-radius:var(--r);padding:2px 6px;font-size:11px;cursor:pointer;outline:none;height:26px}
 .lsel:focus{border-color:var(--ac)}
 
-/* editor */
+/* ── EDITOR ZONE ──────────────────────────────────────── */
+#editor-zone{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column}
 #editor-box{flex:1;overflow:hidden;position:relative}
-.CodeMirror{height:100%!important;font-family:var(--fmono)!important;font-size:14px!important;line-height:1.65!important;background:var(--bg0)!important}
-.CodeMirror-scroll{overflow:auto!important}
-.CodeMirror-gutters{background:var(--bg1)!important;border-right:1px solid var(--bd)!important}
-.CodeMirror-linenumber{color:var(--t3)!important}
-[data-theme=light] .CodeMirror{background:#fff!important}
-[data-theme=light] .CodeMirror-gutters{background:#f6f8fa!important}
-.cm-err-line{background:rgba(248,81,73,.06)!important}
-.cm-warn-line{background:rgba(210,153,34,.04)!important}
-#prog{height:2px;background:var(--ac);position:absolute;top:0;left:0;z-index:10;transition:width .25s}
+#prog-bar{height:2px;background:var(--ac);position:absolute;top:0;left:0;z-index:10;
+  transition:width .25s;width:0}
 
-/* resizer */
+/* CodeMirror */
+.CodeMirror{height:100%!important;font-family:var(--fmono)!important;
+  font-size:14px!important;line-height:1.7!important;background:var(--bg0)!important}
+.CodeMirror-scroll{overflow:auto!important}
+.CodeMirror-gutters{background:var(--bg1)!important;border-right:1px solid var(--bd)!important;min-width:44px}
+.CodeMirror-linenumber{color:var(--t3)!important;padding:0 6px!important}
+[data-theme=light] .CodeMirror{background:#fafafa!important}
+[data-theme=light] .CodeMirror-gutters{background:#f0f0f5!important}
+
+/* Gutter error/warn markers */
+.CodeMirror-gutter-error{color:var(--gutter-err)!important;font-size:12px;cursor:pointer;padding:0 2px;line-height:1.7}
+.CodeMirror-gutter-warning{color:var(--gutter-warn)!important;font-size:12px;cursor:pointer;padding:0 2px;line-height:1.7}
+.CodeMirror-gutter-info{color:var(--gutter-info)!important;font-size:12px;cursor:pointer;padding:0 2px;line-height:1.7}
+.cm-err-bg{background:rgba(240,84,79,.08)!important}
+.cm-warn-bg{background:rgba(240,192,80,.05)!important}
+
+/* Inline error tooltip */
+.err-tooltip{
+  position:fixed;z-index:9000;background:var(--bg3);border:1px solid var(--acr);
+  border-radius:var(--r);padding:5px 10px;font-size:11.5px;color:var(--t1);
+  max-width:340px;line-height:1.5;box-shadow:0 4px 16px rgba(0,0,0,.4);
+  font-family:var(--fmono);pointer-events:none
+}
+
+/* ── FIND/REPLACE PANEL ───────────────────────────────── */
+#find-bar{
+  display:none;position:absolute;top:0;right:14px;z-index:100;
+  background:var(--bg2);border:1px solid var(--bd2);border-top:none;
+  border-radius:0 0 var(--r2) var(--r2);box-shadow:0 4px 20px rgba(0,0,0,.3);
+  padding:8px 10px;min-width:360px
+}
+#find-bar.show{display:block}
+.fb-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.fb-row:last-child{margin-bottom:0}
+.fb-in{
+  flex:1;background:var(--bg3);border:1px solid var(--bd);color:var(--t1);
+  border-radius:var(--r);padding:4px 8px;font-size:12px;outline:none;
+  font-family:var(--fmono)
+}
+.fb-in:focus{border-color:var(--ac)}
+.fb-btn{background:var(--bg3);border:1px solid var(--bd);color:var(--t2);
+  border-radius:var(--r);padding:3px 8px;font-size:11px;cursor:pointer;
+  white-space:nowrap;transition:all .1s}
+.fb-btn:hover{background:var(--ac);border-color:var(--ac);color:#fff}
+.fb-count{font-size:11px;color:var(--t3);white-space:nowrap;min-width:50px}
+.fb-close{background:none;border:none;color:var(--t3);cursor:pointer;
+  padding:2px 5px;font-size:14px;border-radius:3px;flex-shrink:0}
+.fb-close:hover{color:var(--t1);background:var(--bg4)}
+.fb-opts{display:flex;gap:6px;font-size:10.5px;color:var(--t3);align-items:center}
+.fb-opts label{display:flex;align-items:center;gap:3px;cursor:pointer}
+.fb-opts input[type=checkbox]{cursor:pointer}
+
+/* ── INLINE EDIT (Ctrl+K) ────────────────────────────── */
+#inline-edit{
+  display:none;position:absolute;z-index:500;
+  background:var(--bg2);border:1px solid var(--ac);border-radius:var(--r2);
+  padding:8px;min-width:320px;max-width:500px;
+  box-shadow:0 8px 32px rgba(0,0,0,.5)
+}
+#inline-edit.show{display:block}
+#inline-edit-in{
+  width:100%;background:var(--bg3);border:1px solid var(--bd);color:var(--t1);
+  border-radius:var(--r);padding:7px 10px;font-size:12.5px;outline:none;
+  font-family:var(--fui);margin-bottom:6px
+}
+#inline-edit-in:focus{border-color:var(--ac)}
+.ie-hint{font-size:10.5px;color:var(--t3);display:flex;justify-content:space-between}
+
+/* ── DIFF VIEW ────────────────────────────────────────── */
+#diff-panel{
+  display:none;flex-direction:column;border-top:1px solid var(--bd);
+  background:var(--bg1);flex-shrink:0
+}
+#diff-panel.show{display:flex;height:280px}
+#diff-hdr{display:flex;align-items:center;justify-content:space-between;
+  padding:5px 10px;border-bottom:1px solid var(--bd);flex-shrink:0}
+.diff-title{font-size:11.5px;font-weight:600;color:var(--t2);display:flex;align-items:center;gap:6px}
+#diff-body{flex:1;overflow:auto;padding:0;font-family:var(--fmono);font-size:12px;line-height:1.65}
+.diff-line{padding:1px 12px;white-space:pre-wrap;word-break:break-all}
+.diff-add{background:rgba(62,207,142,.1);color:#3ecf8e;border-left:3px solid #3ecf8e}
+.diff-del{background:rgba(240,84,79,.08);color:#f0544f;border-left:3px solid #f0544f}
+.diff-ctx{color:var(--t2)}
+.diff-acts{display:flex;gap:5px}
+
+/* ── OUTPUT / PREVIEW TABS ────────────────────────────── */
 #resizer{height:4px;background:var(--bd);cursor:ns-resize;flex-shrink:0;transition:background .12s}
 #resizer:hover,#resizer.dragging{background:var(--ac)}
+#out-area{height:0;overflow:hidden;flex-shrink:0;display:flex;flex-direction:column;border-top:1px solid var(--bd)}
+#out-area.open{height:280px}
+#out-tab-bar{display:flex;align-items:center;background:var(--bg1);border-bottom:1px solid var(--bd);flex-shrink:0}
+.out-tab{padding:5px 14px;font-size:11.5px;color:var(--t3);cursor:pointer;
+  border-bottom:2px solid transparent;transition:all .1s}
+.out-tab:hover{color:var(--t1)}
+.out-tab.active{color:var(--t1);border-bottom-color:var(--ac)}
+.out-pane{display:none;flex:1;overflow:hidden;flex-direction:column}
+.out-pane.active{display:flex}
+#out-actions{display:flex;gap:4px;margin-left:auto;padding:0 8px}
+.oab{display:flex;align-items:center;gap:3px;padding:2px 8px;border-radius:var(--r);
+  font-size:11px;cursor:pointer;border:1px solid var(--bd);background:var(--bg2);
+  color:var(--t2);transition:all .1s}
+.oab:hover{color:var(--t1)}
+.oab.apply{background:var(--ac2);color:#fff;border-color:var(--ac2)}.oab.apply:hover{opacity:.85}
+.oab.cls{background:none;border:none;color:var(--t3)}.oab.cls:hover{color:var(--t1)}
+#out-body{flex:1;overflow-y:auto;padding:10px 14px;font-family:var(--fmono);
+  font-size:12.5px;line-height:1.65;color:var(--t1);white-space:pre-wrap;word-break:break-word}
+#preview-frame{width:100%;height:100%;border:none;background:#fff;flex:1}
+#agent-body{flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.agent-step{border:1px solid var(--bd);border-radius:var(--r2);overflow:hidden}
+.agent-step-hdr{padding:5px 10px;font-size:11.5px;font-weight:600;display:flex;align-items:center;gap:7px;cursor:pointer}
+.agent-step-hdr.pending{background:var(--bg3);color:var(--t3)}
+.agent-step-hdr.running{background:rgba(124,106,247,.1);color:var(--ac)}
+.agent-step-hdr.done{background:rgba(62,207,142,.08);color:var(--ac2)}
+.agent-step-hdr.error{background:rgba(240,84,79,.08);color:var(--acr)}
+.agent-step-body{padding:8px 10px;font-size:11.5px;color:var(--t2);
+  font-family:var(--fmono);white-space:pre-wrap;line-height:1.6;display:none;
+  border-top:1px solid var(--bd);background:var(--bg0)}
+.agent-step-body.show{display:block}
 
-/* output panel */
-#out-panel{height:0;overflow:hidden;border-top:1px solid var(--bd);background:var(--bg1);display:flex;flex-direction:column;transition:height .18s}
-#out-panel.open{height:280px}
-#out-hdr{display:flex;align-items:center;justify-content:space-between;padding:5px 10px;border-bottom:1px solid var(--bd);flex-shrink:0}
-.out-title{font-size:11.5px;font-weight:600;color:var(--t2);display:flex;align-items:center;gap:5px}
-.out-acts{display:flex;gap:4px}
-#out-body{flex:1;overflow-y:auto;padding:8px 12px;font-family:var(--fmono);font-size:12.5px;line-height:1.6;color:var(--t1);white-space:pre-wrap;word-break:break-word}
-.pbadge{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:500}
-.pb-g{background:rgba(66,133,244,.15);color:#4285f4}
-.pb-m{background:rgba(240,136,62,.15);color:var(--aco)}
-.pb-q{background:rgba(63,185,80,.15);color:var(--acg)}
-.pb-e{background:rgba(248,81,73,.15);color:var(--acr)}
-.obtn{display:flex;align-items:center;gap:3px;padding:2px 8px;border-radius:var(--r);font-size:11px;cursor:pointer;border:1px solid var(--bd);background:var(--bg2);color:var(--t2);transition:all .1s}
-.obtn:hover{color:var(--t1)}
-.obtn.apply-btn{background:var(--acg);color:#fff;border-color:var(--acg)}.obtn.apply-btn:hover{opacity:.88}
-.obtn.cls-btn{background:none;border:none;color:var(--t3)}.obtn.cls-btn:hover{color:var(--t1)}
-
-/* statusbar */
-#statusbar{height:var(--sh);background:var(--bg2);border-top:1px solid var(--bd);display:flex;align-items:center;padding:0 8px;gap:8px;flex-shrink:0;overflow:hidden}
-.si{font-size:10px;color:var(--t2);display:flex;align-items:center;gap:3px;white-space:nowrap;cursor:default}
-.si.ok{color:var(--acg)}.si.err{color:var(--acr)}.si.warn{color:var(--acy)}.si.loading{color:var(--ac)}
-.ssep{font-size:9px;color:var(--t3)}
-.sr{margin-left:auto;display:flex;gap:8px}
-#ec{cursor:pointer}.#ec:hover{color:var(--t1)}
-
-/* AI Chat — Trae IDE style: full-height right panel */
-/* AI Chat — Trae IDE style: fixed full-height right panel */
-#chat-win {
-  display: none; /* Hidden by default */
-  width: 0;
-  min-width: 0;
-  background: var(--bg1);
-  border-left: 1px solid var(--bd);
-  flex-direction: column; /* Organizes header, content, and input vertically */
-  overflow: hidden;
-  flex-shrink: 0;
-  transition: width .2s ease, min-width .2s ease;
-  
-  /* Fixed positioning on the right side */
-  position: fixed;
-  right: 0;
-  top: 0;
-  height: 100%;
-  z-index: 1000; /* Ensures it sits on top of editor layers if necessary */
+/* ── AI CHAT ──────────────────────────────────────────── */
+#chat-win{
+  width:0;min-width:0;background:var(--bg1);border-left:1px solid var(--bd);
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;
+  transition:width .2s ease,min-width .2s ease
 }
-
-/* When active, change display to flex (not block) to respect flex-direction */
-#chat-win.show {
-  display: flex;
-  width: 320px;
-  min-width: 320px;
-}
+#chat-win.show{width:340px;min-width:340px}
 #chat-hdr{
-  padding:8px 10px;border-bottom:1px solid var(--bd);
-  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
-  background:var(--bg1);
+  padding:0 10px;height:38px;border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--bg1)
 }
-.chat-title-row{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600}
-#chat-msgs{
-  flex:1;overflow-y:auto;padding:10px 10px 6px;
-  display:flex;flex-direction:column;gap:10px;
-}
-.cm{display:flex;flex-direction:column;gap:3px}
-.cm .cr{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;padding:0 2px}
-.cm .ct{
-  font-size:12.5px;line-height:1.6;color:var(--t1);
+.chat-title-row{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600}
+#chat-tabs{display:flex;border-bottom:1px solid var(--bd);flex-shrink:0}
+.chat-tab{padding:6px 14px;font-size:11.5px;color:var(--t3);cursor:pointer;
+  border-bottom:2px solid transparent;transition:all .1s}
+.chat-tab:hover{color:var(--t1)}
+.chat-tab.active{color:var(--t1);border-bottom-color:var(--ac)}
+.chat-pane{display:none;flex:1;flex-direction:column;overflow:hidden}
+.chat-pane.active{display:flex}
+#chat-msgs{flex:1;overflow-y:auto;padding:10px 10px 6px;display:flex;flex-direction:column;gap:10px}
+.cm-msg{display:flex;flex-direction:column;gap:3px}
+.cm-msg .cr{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;
+  letter-spacing:.06em;padding:0 2px;display:flex;align-items:center;gap:5px}
+.cm-msg .ct{font-size:12.5px;line-height:1.65;color:var(--t1);
   background:var(--bg2);border-radius:var(--r);padding:8px 10px;
-  white-space:pre-wrap;word-break:break-word;border:1px solid transparent
-}
-.cm.ai .ct{background:var(--bg3);border-color:var(--bd)}
-.cm .cc{
-  font-family:var(--fmono);font-size:12px;background:var(--bg0);
+  white-space:pre-wrap;word-break:break-word;border:1px solid transparent}
+.cm-msg.ai .ct{background:var(--bg3);border-color:var(--bd)}
+.cm-msg .cc{font-family:var(--fmono);font-size:11.5px;background:var(--bg0);
   border:1px solid var(--bd);border-radius:var(--r);padding:8px 10px;
-  overflow-x:auto;white-space:pre;word-break:normal;
-  max-height:320px;overflow-y:auto;
-}
+  overflow-x:auto;white-space:pre;word-break:normal;max-height:300px;overflow-y:auto}
 .cc-acts{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}
-.cca{font-size:11px;padding:3px 10px;border-radius:var(--r);border:1px solid var(--acg);color:var(--acg);background:none;cursor:pointer;transition:all .1s}
-.cca:hover{background:var(--acg);color:#fff}
-.cca.cp{border-color:var(--ac);color:var(--ac)}.cca.cp:hover{background:var(--ac);color:#fff}
+.cca{font-size:11px;padding:3px 10px;border-radius:var(--r);border:1px solid var(--ac2);
+  color:var(--ac2);background:none;cursor:pointer;transition:all .1s}
+.cca:hover{background:var(--ac2);color:#fff}
+.cca.cp{border-color:var(--acb);color:var(--acb)}.cca.cp:hover{background:var(--acb);color:#fff}
 #ctx-bar{
-  padding:5px 10px;border-top:1px solid var(--bd);
-  font-size:10.5px;color:var(--t3);
-  display:flex;align-items:center;gap:5px;flex-shrink:0;
-  background:var(--bg3)
+  padding:4px 10px;border-top:1px solid var(--bd);font-size:10.5px;color:var(--t3);
+  display:flex;align-items:center;gap:5px;flex-shrink:0;background:var(--bg3)
 }
-#ctx-bar.has{color:var(--acy);background:rgba(210,153,34,.06)}
+#ctx-bar.has{color:var(--acy);background:rgba(240,192,80,.06)}
 #chat-input-row{
-  padding:8px 8px 10px;border-top:1px solid var(--bd);
-  display:flex;flex-direction:column;gap:6px;flex-shrink:0;
-  background:var(--bg1)
+  padding:6px 8px 8px;border-top:1px solid var(--bd);
+  display:flex;flex-direction:column;gap:5px;flex-shrink:0;background:var(--bg1)
 }
 #chat-in-wrap{display:flex;gap:6px;align-items:flex-end}
 #chat-in{
   flex:1;background:var(--bg2);border:1px solid var(--bd);color:var(--t1);
-  border-radius:var(--r);padding:8px 10px;font-size:12.5px;resize:none;
-  outline:none;min-height:38px;max-height:140px;font-family:var(--fui);line-height:1.5
+  border-radius:var(--r2);padding:7px 10px;font-size:12.5px;resize:none;
+  outline:none;min-height:36px;max-height:140px;font-family:var(--fui);line-height:1.5
 }
-#chat-in:focus{border-color:var(--ac);box-shadow:0 0 0 2px rgba(88,166,255,.12)}
+#chat-in:focus{border-color:var(--ac);box-shadow:0 0 0 2px rgba(124,106,247,.12)}
 #chat-send{
   background:var(--ac);border:none;color:#fff;border-radius:var(--r);
-  padding:8px 12px;font-size:13px;cursor:pointer;flex-shrink:0;
-  transition:opacity .12s;align-self:flex-end
+  padding:7px 12px;font-size:13px;cursor:pointer;flex-shrink:0;
+  transition:opacity .12s;align-self:flex-end;height:34px
 }
 #chat-send:hover{opacity:.85}
 #chat-send:disabled{opacity:.4;cursor:not-allowed}
-.chat-hint{font-size:10.5px;color:var(--t3);display:flex;align-items:center;gap:8px}
-.chat-hint .kbd{font-size:9.5px}
+.chat-actions-row{display:flex;gap:4px;flex-wrap:wrap}
+.cact{font-size:10.5px;padding:2px 8px;border-radius:20px;border:1px solid var(--bd);
+  color:var(--t3);background:none;cursor:pointer;transition:all .1s}
+.cact:hover{border-color:var(--ac);color:var(--ac)}
 
-/* modals */
+/* Snippets panel */
+#snippets-pane{flex:1;overflow-y:auto;padding:8px}
+.snip-item{border:1px solid var(--bd);border-radius:var(--r);padding:7px 10px;
+  margin-bottom:5px;cursor:pointer;transition:all .1s}
+.snip-item:hover{border-color:var(--ac);background:var(--bg2)}
+.snip-name{font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px}
+.snip-desc{font-size:10.5px;color:var(--t3)}
+
+/* ── STATUSBAR ────────────────────────────────────────── */
+#statusbar{
+  height:var(--sh);background:var(--bg2);border-top:1px solid var(--bd);
+  display:flex;align-items:center;padding:0 8px;gap:8px;flex-shrink:0;overflow:hidden
+}
+.si{font-size:10.5px;color:var(--t2);display:flex;align-items:center;gap:3px;
+  white-space:nowrap;cursor:default}
+.si.ok{color:var(--ac2)}.si.err{color:var(--acr)}.si.warn{color:var(--acy)}.si.loading{color:var(--ac)}
+.si.click{cursor:pointer}.si.click:hover{color:var(--t1)}
+.ssep{font-size:9px;color:var(--t3)}
+.sr{margin-left:auto;display:flex;gap:8px}
+
+/* ── COMMAND PALETTE ──────────────────────────────────── */
+#cmd-overlay{
+  display:none;position:fixed;inset:0;z-index:5000;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(3px)
+}
+#cmd-overlay.show{display:flex;align-items:flex-start;justify-content:center;padding-top:80px}
+#cmd-box{
+  background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--r2);
+  box-shadow:0 20px 60px rgba(0,0,0,.6);width:560px;max-width:95vw;overflow:hidden
+}
+#cmd-in{
+  width:100%;background:transparent;border:none;color:var(--t1);
+  padding:12px 16px;font-size:14px;outline:none;border-bottom:1px solid var(--bd);
+  font-family:var(--fui)
+}
+#cmd-list{max-height:380px;overflow-y:auto}
+.cmd-item{
+  display:flex;align-items:center;gap:10px;padding:8px 16px;cursor:pointer;
+  font-size:12.5px;color:var(--t2);transition:background .08s
+}
+.cmd-item:hover,.cmd-item.sel{background:var(--bg3);color:var(--t1)}
+.cmd-item i{color:var(--t3);font-size:13px;width:16px;flex-shrink:0}
+.cmd-item .cmd-label{flex:1}
+.cmd-item .cmd-key{font-size:10px;color:var(--t3);font-family:var(--fmono);
+  background:var(--bg4);padding:1px 5px;border-radius:3px}
+.cmd-group{padding:5px 16px 2px;font-size:10px;color:var(--t3);
+  text-transform:uppercase;letter-spacing:.1em}
+
+/* ── MODALS ───────────────────────────────────────────── */
 .modal-content{background:var(--bg1);border:1px solid var(--bd);border-radius:10px;color:var(--t1)}
 .modal-header,.modal-footer{border-color:var(--bd)}
 .modal-title{font-size:13px;font-weight:600}
 .btn-close{filter:invert(1) brightness(.6)}
 [data-theme=light] .btn-close{filter:none}
 .fl{font-size:11.5px;color:var(--t2);margin-bottom:3px}
-.fc,.fs{background:var(--bg2);border:1px solid var(--bd);color:var(--t1);border-radius:var(--r);font-size:12.5px;padding:6px 9px;width:100%}
-.fc:focus,.fs:focus{border-color:var(--ac);outline:none;box-shadow:0 0 0 3px rgba(88,166,255,.12)}
+.fc,.fs{background:var(--bg2);border:1px solid var(--bd);color:var(--t1);
+  border-radius:var(--r);font-size:12.5px;padding:6px 9px;width:100%}
+.fc:focus,.fs:focus{border-color:var(--ac);outline:none;box-shadow:0 0 0 3px rgba(124,106,247,.12)}
 .fc::placeholder{color:var(--t3)}
-.pcard{border:1px solid var(--bd);border-radius:var(--r);padding:9px 12px;margin-bottom:7px;transition:all .12s}
+.pcard{border:1px solid var(--bd);border-radius:var(--r);padding:9px 12px;
+  margin-bottom:7px;transition:all .12s}
 .pcard:hover{border-color:var(--ac);background:var(--bg2)}
 .pn{font-size:12.5px;font-weight:600}
 .pd{font-size:10.5px;color:var(--t3);margin-top:2px}
+.pbadge{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;
+  border-radius:20px;font-size:10px;font-weight:500}
+.pb-g{background:rgba(66,133,244,.15);color:#4285f4}
+.pb-m{background:rgba(240,136,62,.15);color:var(--aco)}
+.pb-q{background:rgba(62,207,142,.15);color:var(--ac2)}
+.pb-e{background:rgba(240,84,79,.15);color:var(--acr)}
+.pb-ac{background:rgba(124,106,247,.15);color:var(--ac)}
 
-/* misc */
+/* ── MISC ─────────────────────────────────────────────── */
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:var(--t3)}
 .spin{animation:spin .65s linear infinite;display:inline-block}
 @keyframes spin{to{transform:rotate(360deg)}}
-.kbd{background:var(--bg2);border:1px solid var(--bd);border-radius:3px;padding:1px 5px;font-size:10px;color:var(--t2);font-family:var(--fmono)}
-.toast{
-  position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
-  background:var(--bg1);border:1px solid var(--bd2);
-  border-radius:var(--r);padding:6px 14px;font-size:12px;
-  z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.45);
-  pointer-events:none;animation:tup .18s ease
+.kbd{background:var(--bg3);border:1px solid var(--bd);border-radius:3px;
+  padding:1px 5px;font-size:10px;color:var(--t2);font-family:var(--fmono)}
+.toast-msg{
+  position:fixed;bottom:30px;left:50%;transform:translateX(-50%);
+  background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--r);
+  padding:6px 16px;font-size:12px;z-index:9999;
+  box-shadow:0 4px 20px rgba(0,0,0,.45);pointer-events:none;
+  animation:tup .18s ease
 }
 @keyframes tup{from{transform:translateX(-50%) translateY(8px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
-/* inline rename */
-.rename-input{
-  background:var(--bg2);border:1px solid var(--ac);color:var(--t1);
-  border-radius:3px;padding:1px 5px;font-size:12px;font-family:var(--fui);
-  width:130px;outline:none
-}
-/* context menu */
 #ctx-menu{
-  display:none;position:fixed;z-index:2000;
-  background:var(--bg1);border:1px solid var(--bd2);
-  border-radius:var(--r);box-shadow:0 8px 24px rgba(0,0,0,.45);
-  min-width:160px;padding:3px 0;font-size:12px
+  display:none;position:fixed;z-index:3000;background:var(--bg2);
+  border:1px solid var(--bd2);border-radius:var(--r);
+  box-shadow:0 8px 24px rgba(0,0,0,.5);min-width:160px;padding:3px 0;font-size:12px
 }
-.ctx-item{padding:5px 14px;cursor:pointer;color:var(--t1);display:flex;align-items:center;gap:7px;transition:background .08s}
-.ctx-item:hover{background:var(--bg2)}
+.ctx-item{padding:5px 14px;cursor:pointer;color:var(--t1);
+  display:flex;align-items:center;gap:7px;transition:background .08s}
+.ctx-item:hover{background:var(--bg3)}
 .ctx-item.danger{color:var(--acr)}
 .ctx-sep{height:1px;background:var(--bd);margin:2px 0}
 </style>
 </head>
 <body>
 <div id="app">
-<!-- titlebar -->
+
+<!-- ── TITLEBAR ── -->
 <div id="titlebar">
-  <div class="brand"><div class="brand-logo">AI</div>AI IDE</div>
-  <button class="tb" onclick="IDE.sb.toggle()"><i class="bi bi-layout-sidebar"></i> Explorer</button>
-  <button class="tb" onclick="IDE.fs.openFolder()"><i class="bi bi-folder2-open"></i> Open Folder</button>
-  <button class="tb" onclick="IDE.fs.newFilePrompt(null)"><i class="bi bi-file-plus"></i> New File</button>
-  <button class="tb" onclick="IDE.fs.saveActive()"><i class="bi bi-floppy2"></i> Save <span class="kbd" style="margin-left:2px">Ctrl+S</span></button>
-  <button class="tb" onclick="IDE.fs.saveAll()"><i class="bi bi-floppy2-fill"></i> Save All</button>
-  <button class="tb" onclick="$('#settingsModal').modal('show')"><i class="bi bi-gear"></i> API Keys</button>
+  <div class="brand">
+    <div class="brand-logo">AI</div>
+    AI IDE
+  </div>
+  <div class="tb-sep"></div>
+  <button class="tb" id="btn-explorer" onclick="IDE.sb.toggle()" title="Ctrl+B">
+    <i class="bi bi-layout-sidebar"></i> Explorer
+  </button>
+  <button class="tb" onclick="IDE.fs.openFolder()"><i class="bi bi-folder2-open"></i> Open</button>
+  <button class="tb" onclick="IDE.fs.newFilePrompt(null)"><i class="bi bi-file-plus"></i> New</button>
+  <button class="tb" onclick="IDE.fs.saveActive()" title="Ctrl+S"><i class="bi bi-floppy2"></i> Save</button>
+  <button class="tb" onclick="IDE.findBar.toggle(false)" title="Ctrl+F"><i class="bi bi-search"></i> Find</button>
+  <button class="tb" onclick="IDE.findBar.toggle(true)" title="Ctrl+H"><i class="bi bi-arrow-left-right"></i> Replace</button>
+  <button class="tb" onclick="IDE.cmdPalette.show()" title="Ctrl+Shift+P"><i class="bi bi-terminal"></i> Command</button>
+  <div class="tb-sep"></div>
+  <button class="tb" onclick="$('#settingsModal').modal('show')"><i class="bi bi-key"></i> API Keys</button>
   <div class="tb-r">
     <div class="mpill" id="mpill" onclick="$('#settingsModal').modal('show')">
-      <div class="mdot" id="mdot" style="background:#4285f4"></div>
-      <span id="mname">Gemini 2.0 Flash</span>
-      <i class="bi bi-chevron-down" style="font-size:9px;color:var(--t3)"></i>
+      <div class="mdot" id="mdot" style="background:#7c6af7"></div>
+      <span id="mname">No Provider</span>
+      <i class="bi bi-chevron-down" style="font-size:8px;color:var(--t3)"></i>
     </div>
-    <button class="tb" onclick="IDE.theme.toggle()" id="themeBtn"><i class="bi bi-moon-stars-fill"></i></button>
+    <button class="tb" onclick="IDE.theme.toggle()" id="themeBtn" title="Ctrl+Shift+T">
+      <i class="bi bi-moon-stars-fill"></i>
+    </button>
     <button class="tb" onclick="$('#shortcutsModal').modal('show')"><i class="bi bi-keyboard"></i></button>
   </div>
 </div>
 
 <div id="main">
-<!-- sidebar -->
+<!-- ── SIDEBAR ── -->
 <div id="sidebar">
-  <div class="sb-hdr">
-    <div class="sb-hdr-title" id="sb-project-title">
-      <i class="bi bi-folder2" style="font-size:11px"></i>
-      <span id="sb-proj-name">EXPLORER</span>
-    </div>
-    <div class="sb-hdr-acts">
-      <button class="sib" title="New File" onclick="IDE.fs.newFilePrompt(null)"><i class="bi bi-file-plus"></i></button>
-      <button class="sib" title="New Folder" onclick="IDE.fs.newFolderPrompt(null)"><i class="bi bi-folder-plus"></i></button>
-      <button class="sib" title="Open Folder" onclick="IDE.fs.openFolder()"><i class="bi bi-folder2-open"></i></button>
-      <button class="sib" title="Collapse All" onclick="IDE.fs.collapseAll()"><i class="bi bi-arrow-bar-up"></i></button>
-    </div>
-  </div>
-  <div id="file-tree"></div>
-  <div id="problems-section">
-    <div class="sb-hdr" onclick="IDE.probs.togglePanel()" style="cursor:pointer">
+  <div class="sb-section">
+    <div class="sb-hdr">
       <div class="sb-hdr-title">
-        <i class="bi bi-exclamation-circle" style="font-size:11px"></i>
-        PROBLEMS <span id="prob-count"></span>
+        <i class="bi bi-folder2" style="font-size:10px"></i>
+        <span id="sb-proj-name" style="overflow:hidden;text-overflow:ellipsis">EXPLORER</span>
       </div>
-      <i class="bi bi-chevron-right" id="prob-chev"></i>
+      <div class="sb-hdr-acts">
+        <button class="sib" title="New File" onclick="IDE.fs.newFilePrompt(null)"><i class="bi bi-file-plus"></i></button>
+        <button class="sib" title="New Folder" onclick="IDE.fs.newFolderPrompt(null)"><i class="bi bi-folder-plus"></i></button>
+        <button class="sib" title="Open Folder" onclick="IDE.fs.openFolder()"><i class="bi bi-folder2-open"></i></button>
+        <button class="sib" title="Collapse All" onclick="IDE.fs.collapseAll()"><i class="bi bi-arrow-bar-up"></i></button>
+      </div>
     </div>
-    <div id="problems-body"></div>
+    <div id="file-tree"></div>
+  </div>
+  <div id="prob-section">
+    <div class="prob-hdr" onclick="IDE.probs.togglePanel()">
+      <i class="bi bi-exclamation-circle" style="font-size:10px"></i>
+      PROBLEMS <span id="prob-count" style="color:var(--acr)"></span>
+      <i class="bi bi-chevron-down" id="prob-chev" style="margin-left:auto;font-size:9px"></i>
+    </div>
+    <div id="prob-list"></div>
   </div>
 </div>
 
-<!-- editor wrap -->
-<div id="editor-wrap">
+<!-- ── EDITOR AREA ── -->
+<div id="editor-area">
   <div id="tabs-bar">
-    <div class="tab-add" onclick="IDE.fs.newFilePrompt(null)" title="New file"><i class="bi bi-plus"></i></div>
+    <div class="tab-add" onclick="IDE.fs.newFilePrompt(null)" title="New File"><i class="bi bi-plus"></i></div>
   </div>
-  <div id="action-bar">
-    <button class="ab c" id="b-complete" onclick="IDE.ai.run('complete')" title="Ctrl+Space"><i class="bi bi-lightning-fill"></i> Complete</button>
-    <button class="ab g" id="b-fix" onclick="IDE.ai.run('fix')" title="Alt+F"><i class="bi bi-wrench"></i> Fix</button>
-    <button class="ab y" id="b-explain" onclick="IDE.ai.run('explain')" title="Alt+E"><i class="bi bi-chat-text"></i> Explain</button>
-    <button class="ab p" id="b-doc" onclick="IDE.ai.run('doc')"><i class="bi bi-file-text"></i> Docs</button>
-    <button class="ab o" id="b-review" onclick="IDE.ai.run('review')" title="Alt+R"><i class="bi bi-shield-check"></i> Review</button>
-    <button class="ab t" id="b-format" onclick="IDE.ai.run('format')" title="Alt+Shift+F"><i class="bi bi-layout-text-sidebar-reverse"></i> Format</button>
-    <button class="ab" id="b-refactor" onclick="IDE.ai.run('refactor')" style="border-color:#60a5fa;color:#60a5fa"><i class="bi bi-arrow-repeat"></i> Refactor</button>
-    <button class="ab" id="b-optimize" onclick="IDE.ai.run('optimize')" style="border-color:#34d399;color:#34d399"><i class="bi bi-speedometer2"></i> Optimize</button>
-    <button class="ab v" id="b-tests" onclick="IDE.ai.run('tests')"><i class="bi bi-check2-circle"></i> Tests</button>
-    <button class="ab r" id="b-convert" onclick="IDE.ai.run('convert')"><i class="bi bi-arrow-left-right"></i> Convert</button>
-    <div class="bsep"></div>
-    <button class="ab c" id="b-chat" onclick="IDE.chat.toggle(true)" title="Ctrl+U"><i class="bi bi-stars"></i> AI Chat</button>
-    <div class="bsep"></div>
+
+  <div id="breadcrumb">
+    <span style="color:var(--t3);font-size:10px"><i class="bi bi-file-code" style="margin-right:3px"></i></span>
+    <span class="bc-item" id="bc-file">No file open</span>
+  </div>
+
+  <div id="toolbar">
+    <button class="btn-ai c" id="b-complete" onclick="IDE.ai.run('complete')" title="Ctrl+Space"><i class="bi bi-lightning-fill"></i> Complete</button>
+    <button class="btn-ai g" id="b-fix" onclick="IDE.ai.run('fix')" title="Alt+F"><i class="bi bi-wrench"></i> Fix</button>
+    <button class="btn-ai y" id="b-explain" onclick="IDE.ai.run('explain')" title="Alt+E"><i class="bi bi-chat-text"></i> Explain</button>
+    <button class="btn-ai p" id="b-doc" onclick="IDE.ai.run('doc')"><i class="bi bi-file-text"></i> Docs</button>
+    <button class="btn-ai o" id="b-review" onclick="IDE.ai.run('review')" title="Alt+R"><i class="bi bi-shield-check"></i> Review</button>
+    <button class="btn-ai b" id="b-format" onclick="IDE.ai.run('format')" title="Alt+Shift+F"><i class="bi bi-layout-text-sidebar"></i> Format</button>
+    <button class="btn-ai" id="b-refactor" onclick="IDE.ai.run('refactor')" style="border-color:#a78bfa;color:#a78bfa"><i class="bi bi-arrow-repeat"></i> Refactor</button>
+    <button class="btn-ai" id="b-optimize" onclick="IDE.ai.run('optimize')" style="border-color:#3ecf8e;color:#3ecf8e"><i class="bi bi-speedometer2"></i> Optimize</button>
+    <button class="btn-ai b" id="b-tests" onclick="IDE.ai.run('tests')"><i class="bi bi-check2-circle"></i> Tests</button>
+    <button class="btn-ai r" id="b-convert" onclick="IDE.ai.run('convert')"><i class="bi bi-arrow-left-right"></i> Convert</button>
+    <div class="tsep"></div>
+    <button class="btn-ai agent" id="b-agent" onclick="IDE.agent.start()" title="AI Agent Mode"><i class="bi bi-robot"></i> Agent</button>
+    <button class="btn-ai c" id="b-chat" onclick="IDE.chat.toggle(true)" title="Ctrl+U"><i class="bi bi-stars"></i> Chat</button>
+    <div class="tsep"></div>
+    <button class="btn-ai" onclick="IDE.preview.show()" style="border-color:#60c0f0;color:#60c0f0"><i class="bi bi-eye"></i> Preview</button>
+    <div class="tsep"></div>
     <select class="lsel" id="langSel" onchange="IDE.editor.setLang(this.value)">
       <option value="php">PHP/Laravel</option>
       <option value="javascript">JavaScript</option>
@@ -399,81 +573,173 @@ html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--bg
       <option value="xml">XML</option>
     </select>
   </div>
-  <div id="editor-box">
-    <div id="prog" style="width:0"></div>
-    <textarea id="cm-editor"></textarea>
-  </div>
-  <div id="resizer"></div>
-  <div id="out-panel">
-    <div id="out-hdr">
-      <div class="out-title">
-        <i class="bi bi-stars" style="color:var(--ac)"></i>
-        <span id="out-title-txt">AI Output</span>
-        <span class="pbadge pb-g" id="out-badge">Gemini</span>
+
+  <div id="editor-zone">
+    <div id="editor-box">
+      <div id="prog-bar"></div>
+      <textarea id="cm-editor"></textarea>
+    </div>
+
+    <!-- Find/Replace Bar (inside editor-box for positioning) -->
+    <div id="find-bar">
+      <div class="fb-row">
+        <input class="fb-in" id="fb-find" placeholder="Find…" spellcheck="false">
+        <button class="fb-btn" onclick="IDE.findBar.prev()" title="Previous"><i class="bi bi-chevron-up"></i></button>
+        <button class="fb-btn" onclick="IDE.findBar.next()" title="Next"><i class="bi bi-chevron-down"></i></button>
+        <span class="fb-count" id="fb-count">0 results</span>
+        <button class="fb-close" onclick="IDE.findBar.close()"><i class="bi bi-x"></i></button>
       </div>
-      <div class="out-acts">
-        <button class="obtn" onclick="IDE.panel.copy()"><i class="bi bi-clipboard"></i> Copy</button>
-        <button class="obtn apply-btn" id="applyBtn" onclick="IDE.panel.apply()"><i class="bi bi-arrow-return-left"></i> Apply</button>
-        <button class="obtn cls-btn" onclick="IDE.panel.close()"><i class="bi bi-x-lg"></i></button>
+      <div class="fb-row" id="fb-replace-row" style="display:none">
+        <input class="fb-in" id="fb-replace" placeholder="Replace with…" spellcheck="false">
+        <button class="fb-btn" onclick="IDE.findBar.replaceOne()">Replace</button>
+        <button class="fb-btn" onclick="IDE.findBar.replaceAll()">Replace All</button>
+      </div>
+      <div class="fb-opts">
+        <label><input type="checkbox" id="fb-case"> Case</label>
+        <label><input type="checkbox" id="fb-word"> Word</label>
+        <label><input type="checkbox" id="fb-regex"> Regex</label>
       </div>
     </div>
-    <div id="out-body"><span style="color:var(--t3);font-style:italic">AI output appears here…</span></div>
+
+    <!-- Inline Edit (Ctrl+K) -->
+    <div id="inline-edit">
+      <input type="text" id="inline-edit-in" placeholder="Tell AI what to do with this code… (Enter to run)">
+      <div class="ie-hint">
+        <span><i class="bi bi-stars" style="color:var(--ac)"></i> Inline AI Edit</span>
+        <span><span class="kbd">Enter</span> run &nbsp; <span class="kbd">Esc</span> cancel</span>
+      </div>
+    </div>
+
+    <!-- Resizer -->
+    <div id="resizer"></div>
+
+    <!-- Output/Preview Area -->
+    <div id="out-area">
+      <div id="out-tab-bar">
+        <div class="out-tab active" data-pane="out-main" onclick="IDE.outTabs.switch('out-main')">
+          <i class="bi bi-stars" style="color:var(--ac);margin-right:4px"></i>AI Output
+          <span class="pbadge pb-ac" id="out-badge" style="margin-left:4px">AI</span>
+        </div>
+        <div class="out-tab" data-pane="out-diff" onclick="IDE.outTabs.switch('out-diff')"><i class="bi bi-file-diff" style="margin-right:4px"></i>Diff</div>
+        <div class="out-tab" data-pane="out-agent" onclick="IDE.outTabs.switch('out-agent')"><i class="bi bi-robot" style="margin-right:4px"></i>Agent</div>
+        <div class="out-tab" data-pane="out-preview" onclick="IDE.outTabs.switch('out-preview')"><i class="bi bi-eye" style="margin-right:4px"></i>Preview</div>
+        <div id="out-actions">
+          <button class="oab" onclick="IDE.out.copy()"><i class="bi bi-clipboard"></i> Copy</button>
+          <button class="oab apply" id="applyBtn" onclick="IDE.out.apply()"><i class="bi bi-check-lg"></i> Apply</button>
+          <button class="oab cls" onclick="IDE.out.close()"><i class="bi bi-x-lg"></i></button>
+        </div>
+      </div>
+      <!-- AI Output pane -->
+      <div class="out-pane active" id="out-main">
+        <div id="out-body"><span style="color:var(--t3);font-style:italic">AI output appears here…</span></div>
+      </div>
+      <!-- Diff pane -->
+      <div class="out-pane" id="out-diff">
+        <div id="diff-body"><span style="color:var(--t3);font-style:italic;padding:12px;display:block">Diff appears when you Apply a suggestion with changes…</span></div>
+      </div>
+      <!-- Agent pane -->
+      <div class="out-pane" id="out-agent">
+        <div id="agent-body"><span style="color:var(--t3);font-style:italic;padding:12px;display:block">Use the <strong style="color:var(--ac)">Agent</strong> button to run multi-step AI tasks…</span></div>
+      </div>
+      <!-- Preview pane -->
+      <div class="out-pane" id="out-preview" style="background:#fff">
+        <iframe id="preview-frame" title="Preview"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── AI CHAT ── -->
+<div id="chat-win">
+  <div id="chat-hdr">
+    <div class="chat-title-row">
+      <i class="bi bi-stars" style="color:var(--ac)"></i>
+      AI Assistant
+      <span class="pbadge pb-ac" id="chat-badge">AI</span>
+    </div>
+    <div style="display:flex;gap:4px">
+      <button class="oab" onclick="IDE.chat.clear()" style="padding:2px 7px;font-size:11px"><i class="bi bi-trash"></i></button>
+      <button class="oab cls" onclick="IDE.chat.toggle(false)"><i class="bi bi-x-lg"></i></button>
+    </div>
+  </div>
+  <div id="chat-tabs">
+    <div class="chat-tab active" onclick="IDE.chat.switchTab('chat')" data-tab="chat">Chat</div>
+    <div class="chat-tab" onclick="IDE.chat.switchTab('snippets')" data-tab="snippets">Snippets</div>
+  </div>
+
+  <!-- Chat Tab -->
+  <div class="chat-pane active" id="chat-pane">
+    <div id="chat-msgs">
+      <div class="cm-msg ai">
+        <div class="cr"><i class="bi bi-stars"></i> AI Assistant</div>
+        <div class="ct">👋 <strong>AI Chat</strong> — Trae-style assistant<br><br>
+          <b>Ctrl+U</b> — open with selected code<br>
+          <b>Ctrl+K</b> — inline AI edit at cursor<br><br>
+          Try: <em>"refactor this for Laravel best practices"</em>, <em>"add validation"</em>, <em>"write unit tests"</em>
+        </div>
+      </div>
+    </div>
+    <div id="ctx-bar">
+      <i class="bi bi-code-square"></i>
+      <span id="ctx-txt">No code context</span>
+      <button class="oab cls" style="margin-left:auto;padding:1px 5px;font-size:10px" onclick="IDE.chat.clearCtx()">✕</button>
+    </div>
+    <div id="chat-input-row">
+      <div class="chat-actions-row">
+        <button class="cact" onclick="IDE.chat.quickSend('Explain this code')">Explain</button>
+        <button class="cact" onclick="IDE.chat.quickSend('Fix bugs in this code')">Fix</button>
+        <button class="cact" onclick="IDE.chat.quickSend('Add error handling and validation')">Improve</button>
+        <button class="cact" onclick="IDE.chat.quickSend('Write unit tests for this')">Tests</button>
+      </div>
+      <div id="chat-in-wrap">
+        <textarea id="chat-in" placeholder="Ask anything… (Enter=send, Shift+Enter=newline)" rows="1"></textarea>
+        <button id="chat-send" onclick="IDE.chat.send()"><i class="bi bi-send-fill"></i></button>
+      </div>
+      <div style="font-size:10px;color:var(--t3)">
+        <span class="kbd">@file</span> to reference a file &nbsp;
+        <span class="kbd">Ctrl+U</span> to add context
+      </div>
+    </div>
+  </div>
+
+  <!-- Snippets Tab -->
+  <div class="chat-pane" id="snippets-pane-wrap">
+    <div id="snippets-pane"></div>
   </div>
 </div>
 </div>
 
-<!-- statusbar -->
+<!-- ── STATUS BAR ── -->
 <div id="statusbar">
   <div class="si loading" id="si-st"><i class="bi bi-circle-fill" style="font-size:5px"></i><span id="st-msg">Ready</span></div>
   <span class="ssep">·</span>
   <div class="si" id="si-prov">No API key</div>
   <span class="ssep">·</span>
-  <div class="si" id="ec" onclick="IDE.probs.togglePanel()"></div>
+  <div class="si click" id="ec" onclick="IDE.probs.togglePanel()">
+    <i class="bi bi-check-circle-fill"></i> No issues
+  </div>
   <div class="sr">
     <div class="si" id="si-save"></div>
     <div class="si"><span id="si-lang">PHP</span></div>
     <span class="ssep">·</span>
     <div class="si"><span id="si-cur">Ln 1, Col 1</span></div>
     <span class="ssep">·</span>
+    <div class="si"><span id="si-sel"></span></div>
+    <span class="ssep" id="sel-sep" style="display:none">·</span>
     <div class="si"><span id="si-lines">0 lines</span></div>
   </div>
 </div>
 </div>
 
-<!-- AI Chat -->
-<div id="chat-win">
-  <div id="chat-hdr">
-    <div class="chat-title-row">
-      <i class="bi bi-stars" style="color:var(--ac)"></i>
-      AI Assistant
-      <span class="pbadge pb-g" id="chat-badge" style="font-size:10px">Gemini</span>
-    </div>
-    <div style="display:flex;gap:4px">
-      <button class="obtn" onclick="IDE.chat.clear()" style="padding:2px 7px;font-size:11px"><i class="bi bi-trash"></i></button>
-      <button class="obtn cls-btn" onclick="IDE.chat.toggle(false)"><i class="bi bi-x-lg"></i></button>
-    </div>
-  </div>
-  <div id="chat-msgs">
-    <div class="cm ai">
-      <div class="cr">AI Assistant</div>
-      <div class="ct">👋 <strong>AI Chat</strong> — like Trae AI / Cursor<br><br>
-      <b>Ctrl+U</b> to open with selected code as context.<br>
-      Then type: <em>"add input validation"</em>, <em>"convert to TypeScript"</em>, <em>"add unit tests"</em> etc.<br><br>
-      I'll write the code and you can <b>Apply</b> it directly to your editor.</div>
-    </div>
-  </div>
-  <div id="ctx-bar">
-    <i class="bi bi-code-square"></i>
-    <span id="ctx-txt">No code context</span>
-    <button class="obtn cls-btn" style="margin-left:auto;padding:1px 6px;font-size:10px" onclick="IDE.chat.clearCtx()">Clear</button>
-  </div>
-  <div id="chat-input-row">
-    <textarea id="chat-in" placeholder="Ask AI to write, fix, explain code… (Enter=send, Shift+Enter=newline)" rows="1"></textarea>
-    <button id="chat-send" onclick="IDE.chat.send()"><i class="bi bi-send-fill"></i></button>
+<!-- ── COMMAND PALETTE ── -->
+<div id="cmd-overlay" onclick="IDE.cmdPalette.hide()">
+  <div id="cmd-box" onclick="e=>e.stopPropagation()">
+    <input type="text" id="cmd-in" placeholder="Search commands…" autocomplete="off" spellcheck="false">
+    <div id="cmd-list"></div>
   </div>
 </div>
 
-<!-- context menu -->
+<!-- ── CONTEXT MENU ── -->
 <div id="ctx-menu">
   <div class="ctx-item" id="cm-new-file"><i class="bi bi-file-plus"></i> New File</div>
   <div class="ctx-item" id="cm-new-folder"><i class="bi bi-folder-plus"></i> New Folder</div>
@@ -482,41 +748,51 @@ html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--bg
   <div class="ctx-item danger" id="cm-delete"><i class="bi bi-trash"></i> Delete</div>
 </div>
 
-<!-- Settings Modal -->
+<!-- ── SETTINGS MODAL ── -->
 <div class="modal fade" id="settingsModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-gear-fill me-2" style="color:var(--ac)"></i>API Keys &amp; Settings</h5>
+        <h5 class="modal-title"><i class="bi bi-key-fill me-2" style="color:var(--ac)"></i>API Keys &amp; Settings</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-3">
-        <p style="font-size:11px;color:var(--t2);margin-bottom:10px"><i class="bi bi-shield-lock me-1"></i>Keys saved in localStorage only. Auto-switch: <span class="pbadge pb-g">Gemini</span> → <span class="pbadge pb-m">Mistral</span> → <span class="pbadge pb-q">Groq</span></p>
+        <p style="font-size:11px;color:var(--t2);margin-bottom:10px">
+          <i class="bi bi-shield-lock me-1"></i>Keys stored in localStorage only. Auto-fallback order:
+          <span class="pbadge pb-g">Gemini</span> → <span class="pbadge pb-m">Mistral</span> → <span class="pbadge pb-q">Groq</span>
+        </p>
         <div class="pcard">
-          <div class="d-flex justify-content-between">
-            <div><div class="pn"><span class="pbadge pb-g me-1">Gemini</span> Google Gemini 2.0 Flash</div><div class="pd">aistudio.google.com/apikey — free</div></div>
-            <span id="st-gemini" class="pbadge" style="font-size:10px"></span>
+          <div class="d-flex justify-content-between align-items-center">
+            <div><div class="pn"><span class="pbadge pb-g me-1">Gemini</span> Google Gemini 2.0 Flash</div>
+            <div class="pd">aistudio.google.com/apikey — free tier available</div></div>
+            <span id="st-gemini" class="pbadge"></span>
           </div>
           <input type="password" class="fc mt-2" id="key-gemini" placeholder="AIza…" autocomplete="off">
         </div>
         <div class="pcard">
-          <div class="d-flex justify-content-between">
-            <div><div class="pn"><span class="pbadge pb-m me-1">Mistral</span> Codestral Latest</div><div class="pd">console.mistral.ai/api-keys — free</div></div>
-            <span id="st-mistral" class="pbadge" style="font-size:10px"></span>
+          <div class="d-flex justify-content-between align-items-center">
+            <div><div class="pn"><span class="pbadge pb-m me-1">Mistral</span> Codestral Latest</div>
+            <div class="pd">console.mistral.ai/api-keys — free tier available</div></div>
+            <span id="st-mistral" class="pbadge"></span>
           </div>
           <input type="password" class="fc mt-2" id="key-mistral" placeholder="…" autocomplete="off">
         </div>
         <div class="pcard">
-          <div class="d-flex justify-content-between">
-            <div><div class="pn"><span class="pbadge pb-q me-1">Groq</span> Llama 3.3 70B — very fast</div><div class="pd">console.groq.com/keys — free</div></div>
-            <span id="st-groq" class="pbadge" style="font-size:10px"></span>
+          <div class="d-flex justify-content-between align-items-center">
+            <div><div class="pn"><span class="pbadge pb-q me-1">Groq</span> Llama 3.3 70B — fastest</div>
+            <div class="pd">console.groq.com/keys — free tier available</div></div>
+            <span id="st-groq" class="pbadge"></span>
           </div>
           <input type="password" class="fc mt-2" id="key-groq" placeholder="gsk_…" autocomplete="off">
         </div>
         <hr style="border-color:var(--bd);margin:12px 0">
         <div class="row g-2">
           <div class="col-3"><label class="fl">Font Size</label>
-            <select class="fs" id="s-fontsize"><option value="12">12px</option><option value="13">13px</option><option value="14" selected>14px</option><option value="15">15px</option><option value="16">16px</option><option value="18">18px</option></select>
+            <select class="fs" id="s-fontsize">
+              <option value="12">12px</option><option value="13">13px</option>
+              <option value="14" selected>14px</option><option value="15">15px</option>
+              <option value="16">16px</option><option value="18">18px</option>
+            </select>
           </div>
           <div class="col-3"><label class="fl">Tab Size</label>
             <select class="fs" id="s-tabsize"><option value="2" selected>2 spaces</option><option value="4">4 spaces</option></select>
@@ -524,8 +800,12 @@ html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--bg
           <div class="col-3"><label class="fl">Word Wrap</label>
             <select class="fs" id="s-wrap"><option value="off">Off</option><option value="on" selected>On</option></select>
           </div>
-          <div class="col-3"><label class="fl">AI Accuracy</label>
-            <select class="fs" id="s-aimode"><option value="balanced">Balanced</option><option value="precise" selected>Precise</option><option value="creative">Creative</option></select>
+          <div class="col-3"><label class="fl">AI Mode</label>
+            <select class="fs" id="s-aimode">
+              <option value="balanced">Balanced</option>
+              <option value="precise" selected>Precise</option>
+              <option value="creative">Creative</option>
+            </select>
           </div>
         </div>
       </div>
@@ -537,7 +817,7 @@ html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--bg
   </div>
 </div>
 
-<!-- New File/Folder Modal -->
+<!-- ── NEW FILE MODAL ── -->
 <div class="modal fade" id="nfModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content">
@@ -557,7 +837,7 @@ html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--bg
   </div>
 </div>
 
-<!-- Shortcuts Modal -->
+<!-- ── SHORTCUTS MODAL ── -->
 <div class="modal fade" id="shortcutsModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -567,7 +847,10 @@ html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--bg
       </div>
       <div class="modal-body p-0">
         <table style="width:100%;font-size:12px;border-collapse:collapse">
-          <thead><tr style="border-bottom:1px solid var(--bd)"><th style="padding:6px 14px;color:var(--t2);font-weight:500;text-align:left">Action</th><th style="padding:6px 14px;color:var(--t2);font-weight:500;text-align:right">Key</th></tr></thead>
+          <thead><tr style="border-bottom:1px solid var(--bd)">
+            <th style="padding:6px 14px;color:var(--t2);font-weight:500;text-align:left">Action</th>
+            <th style="padding:6px 14px;color:var(--t2);font-weight:500;text-align:right">Shortcut</th>
+          </tr></thead>
           <tbody id="sc-body"></tbody>
         </table>
       </div>
@@ -599,74 +882,80 @@ html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--bg
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/selection/active-line.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/search/search.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/search/searchcursor.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/search/jump-to-line.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/dialog/dialog.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/fold/foldcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/fold/brace-fold.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/scroll/annotatescrollbar.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/search/matchesonscrollbar.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/search/match-highlighter.min.js"></script>
 
 <script>
-// ════════════════════════════════════════════════════════
-// AI IDE — Full Application
-// ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// AI IDE v3 — Complete Application
+// ════════════════════════════════════════════════════════════
 const IDE = (() => {
 const $ = window.$;
 
-// ── Shared state ─────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────
 const S = {
   cm: null,
-  // Virtual FS: tree of nodes
-  // node: { id, name, type:'file'|'folder', parent:id|null, open:bool }
-  // files: { id -> { content, savedContent, lang, fsHandle(optional) } }
-  nodes: {},          // id -> node
-  fileData: {},       // id -> { content, savedContent, lang, fsHandle }
-  rootIds: [],        // top-level node ids (ordered)
-  childMap: {},       // parentId -> [childId, ...]
-  activeFileId: null,
-  openTabIds: [],     // ordered list of open tab ids
-  theme: 'dark',
-  isLoading: false,
-  chatOpen: false,
-  chatCtx: null,
-  chatCtxLabel: '',
-  chatHistory: [],
-  problems: [],
-  projectName: null,
-  fsDirectoryHandle: null, // File System Access API handle
+  nodes: {}, fileData: {}, rootIds: [], childMap: {},
+  activeFileId: null, openTabIds: [],
+  theme: 'dark', isLoading: false,
+  chatOpen: false, chatCtx: null, chatCtxLabel: '',
+  chatHistory: [], problems: [], projectName: null,
+  fsDirectoryHandle: null,
+  findState: { cursor: null, matches: [], idx: 0 },
+  agentRunning: false,
   providers: {
-    gemini:  { name:'Gemini 2.0 Flash',    model:'gemini-2.0-flash',         color:'#4285f4', badge:'pb-g', ex:false },
-    mistral: { name:'Mistral Codestral',   model:'codestral-latest',          color:'#f0883e', badge:'pb-m', ex:false },
-    groq:    { name:'Groq Llama-3.3-70b',  model:'llama-3.3-70b-versatile',   color:'#3fb950', badge:'pb-q', ex:false },
+    gemini:  { name:'Gemini 2.0 Flash',   model:'gemini-2.0-flash',        color:'#4285f4', badge:'pb-g', ex:false },
+    mistral: { name:'Mistral Codestral',  model:'codestral-latest',         color:'#f0883e', badge:'pb-m', ex:false },
+    groq:    { name:'Groq Llama-3.3-70b', model:'llama-3.3-70b-versatile',  color:'#3ecf8e', badge:'pb-q', ex:false },
   },
 };
 
 // ── Constants ─────────────────────────────────────────────
 const EXT_LANG = {
-  php:'php', js:'javascript', ts:'javascript', jsx:'javascript', tsx:'javascript',
-  py:'python', html:'htmlmixed', htm:'htmlmixed', css:'css', sql:'sql',
-  sh:'shell', bash:'shell', yaml:'yaml', yml:'yaml', xml:'xml', svg:'xml',
-  java:'text/x-java', c:'text/x-csrc', cpp:'text/x-csrc', h:'text/x-csrc',
-  json:'javascript', md:'xml', txt:'xml', vue:'htmlmixed', blade:'htmlmixed',
+  php:'php',js:'javascript',ts:'javascript',jsx:'javascript',tsx:'javascript',
+  py:'python',html:'htmlmixed',htm:'htmlmixed',css:'css',sql:'sql',
+  sh:'shell',bash:'shell',yaml:'yaml',yml:'yaml',xml:'xml',svg:'xml',
+  java:'text/x-java',c:'text/x-csrc',cpp:'text/x-csrc',h:'text/x-csrc',
+  json:'javascript',md:'xml',txt:'xml',vue:'htmlmixed',blade:'htmlmixed',
 };
 const LANG_LABEL = {
-  php:'PHP', javascript:'JS', python:'Python', typescript:'TS',
-  sql:'SQL', htmlmixed:'HTML', css:'CSS', 'text/x-java':'Java',
-  'text/x-csrc':'C/C++', shell:'Bash', yaml:'YAML', xml:'XML',
+  php:'PHP',javascript:'JS',python:'PY',typescript:'TS',sql:'SQL',
+  htmlmixed:'HTML',css:'CSS','text/x-java':'Java','text/x-csrc':'C/C++',
+  shell:'Bash',yaml:'YAML',xml:'XML',
 };
 const LANG_FRIENDLY = {
-  php:'PHP/Laravel', javascript:'JavaScript', python:'Python', typescript:'TypeScript',
-  sql:'SQL', htmlmixed:'HTML', css:'CSS', 'text/x-java':'Java',
-  'text/x-csrc':'C/C++', shell:'Bash', yaml:'YAML', xml:'XML',
+  php:'PHP/Laravel',javascript:'JavaScript',python:'Python',typescript:'TypeScript',
+  sql:'SQL',htmlmixed:'HTML',css:'CSS','text/x-java':'Java',
+  'text/x-csrc':'C/C++',shell:'Bash',yaml:'YAML',xml:'XML',
 };
 const FILE_ICONS = {
-  php:'filetype-php', js:'filetype-js', jsx:'filetype-jsx', ts:'filetype-tsx',
-  tsx:'filetype-tsx', py:'filetype-py', html:'filetype-html', htm:'filetype-html',
-  css:'filetype-css', sql:'database', sh:'terminal', bash:'terminal',
-  md:'markdown', json:'filetype-json', xml:'code-slash', vue:'filetype-vue',
-  blade:'filetype-php', yaml:'file-code', yml:'file-code', txt:'file-text',
-  svg:'file-image', jpg:'file-image', png:'file-image',
+  php:'filetype-php',js:'filetype-js',jsx:'filetype-jsx',ts:'filetype-tsx',
+  tsx:'filetype-tsx',py:'filetype-py',html:'filetype-html',htm:'filetype-html',
+  css:'filetype-css',sql:'database',sh:'terminal',bash:'terminal',
+  md:'markdown',json:'filetype-json',xml:'code-slash',vue:'filetype-vue',
+  blade:'filetype-php',yaml:'file-code',yml:'file-code',txt:'file-text',
+  svg:'file-image',jpg:'file-image',png:'file-image',
 };
-const STARTERS = {
-  php:`Start to create a New file or Open Folder!`,
-};
+
+// PHP/Laravel Snippets
+const SNIPPETS = [
+  { name:'Route (GET)', desc:'Basic GET route', lang:'php', code:`Route::get('/path', [Controller::class, 'method'])->name('route.name');` },
+  { name:'Route (Resource)', desc:'Full resource route', lang:'php', code:`Route::resource('models', ModelController::class);` },
+  { name:'Eloquent Model', desc:'Basic Eloquent model', lang:'php', code:`class Model extends Model {\n    protected $fillable = ['name', 'email'];\n    protected $hidden = ['password'];\n    protected $casts = ['created_at' => 'datetime'];\n}` },
+  { name:'Controller Method', desc:'Typical index method', lang:'php', code:`public function index(Request \$request)\n{\n    \$items = Model::query()\n        ->when(\$request->search, fn(\$q) => \$q->where('name', 'like', "%{\$request->search}%"))\n        ->latest()\n        ->paginate(20);\n    return view('index', compact('items'));\n}` },
+  { name:'Validation', desc:'Form Request validation rules', lang:'php', code:`public function rules(): array\n{\n    return [\n        'name'  => ['required', 'string', 'max:255'],\n        'email' => ['required', 'email', 'unique:users,email'],\n    ];\n}` },
+  { name:'Relationship (hasMany)', desc:'One-to-many relationship', lang:'php', code:`public function items(): HasMany\n{\n    return \$this->hasMany(Item::class);\n}` },
+  { name:'Scope', desc:'Eloquent local scope', lang:'php', code:`public function scopeActive(Builder \$query): Builder\n{\n    return \$query->where('status', 'active');\n}` },
+  { name:'Job', desc:'Dispatchable job class', lang:'php', code:`class ProcessJob implements ShouldQueue\n{\n    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;\n\n    public function __construct(public readonly Model \$model) {}\n\n    public function handle(): void\n    {\n        // Do work here\n    }\n}` },
+  { name:'Carbon now()', desc:'Common Carbon helpers', lang:'php', code:`\$now = now();\n\$yesterday = now()->subDay();\n\$nextWeek = now()->addWeek();\n\$formatted = now()->format('d/m/Y H:i');\n\$isToday = \$date->isToday();\n\$diffDays = \$date->diffInDays(now());` },
+  { name:'Fetch (JS)', desc:'Async fetch with Laravel CSRF', lang:'javascript', code:`const response = await fetch('/api/endpoint', {\n    method: 'POST',\n    headers: {\n        'Content-Type': 'application/json',\n        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,\n    },\n    body: JSON.stringify({ key: value }),\n});\nconst data = await response.json();` },
+  { name:'Alpine.js Component', desc:'Basic Alpine.js component', lang:'javascript', code:`Alpine.data('myComponent', () => ({\n    open: false,\n    items: [],\n    async init() {\n        const res = await fetch('/api/items');\n        this.items = await res.json();\n    },\n    toggle() { this.open = !this.open; },\n}));` },
+];
 
 // ── Utilities ─────────────────────────────────────────────
 const uid = () => '_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -674,572 +963,589 @@ const escH = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/
 const getKey = p => localStorage.getItem('aiide_key_' + p) || '';
 const setKey = (p, v) => v ? localStorage.setItem('aiide_key_' + p, v) : localStorage.removeItem('aiide_key_' + p);
 const getLang = () => $('#langSel').val() || 'php';
-const getTemp = () => ({ balanced:0.4, precise:0.15, creative:0.7 }[localStorage.getItem('aiide_aimode') || 'precise'] ?? 0.15);
+const getTemp = () => ({ balanced:0.4, precise:0.15, creative:0.7 }[localStorage.getItem('aiide_aimode')||'precise'] ?? 0.15);
 const providerOrder = () => ['gemini','mistral','groq'].filter(p => getKey(p) && !S.providers[p].ex);
 
 function setStatus(msg, cls) {
-  $('#si-st').attr('class', 'si ' + (cls||'')).find('#st-msg').text(msg);
+  $('#si-st').attr('class','si '+(cls||'')).find('#st-msg').text(msg);
 }
 function showProg(pct) {
-  $('#prog').css('width', pct + '%');
-  if (pct >= 100) setTimeout(() => $('#prog').css('width','0'), 500);
+  $('#prog-bar').css('width', pct+'%');
+  if (pct>=100) setTimeout(()=>$('#prog-bar').css('width','0'),500);
 }
 function disableAi(on) {
   $('[id^=b-]').prop('disabled', on);
   $('#chat-send').prop('disabled', on);
 }
-function toast(msg, type) {
-  const colors = { success:'var(--acg)', error:'var(--acr)', warning:'var(--acy)', info:'var(--ac)' };
-  const el = $(`<div class="toast" style="border-color:${colors[type]||colors.info}">${escH(msg)}</div>`);
+function toast(msg, type='info') {
+  const colors = { success:'var(--ac2)', error:'var(--acr)', warning:'var(--acy)', info:'var(--acb)' };
+  const el = $(`<div class="toast-msg" style="border-color:${colors[type]}">${escH(msg)}</div>`);
   $('body').append(el);
-  setTimeout(() => el.fadeOut(300, () => el.remove()), 2800);
+  setTimeout(()=>el.fadeOut(300,()=>el.remove()), 2800);
 }
 function updateProvUI(p) {
   const info = S.providers[p];
   $('#mdot').css('background', info.color);
   $('#mname').text(info.name);
-  const short = p.charAt(0).toUpperCase() + p.slice(1);
-  $('#out-badge').attr('class', 'pbadge ' + info.badge).text(short);
-  $('#chat-badge').attr('class', 'pbadge ' + info.badge).text(short);
+  const short = p.charAt(0).toUpperCase()+p.slice(1);
+  const cls = { gemini:'pb-g', mistral:'pb-m', groq:'pb-q' }[p] || 'pb-ac';
+  $('#out-badge').attr('class','pbadge '+cls).text(short);
+  $('#chat-badge').attr('class','pbadge '+cls).text(short);
   $('#si-prov').text(info.name);
 }
 function setProvSt(p, st) {
-  const cls = st === 'ok' ? 'pbadge ' + S.providers[p].badge : 'pbadge pb-e';
-  const txt = st === 'ok' ? '✓ active' : st === 'ex' ? '⚠ rate limited' : '✗ error';
-  $('#st-' + p).attr('class', cls).text(txt);
-}
-function shortcutsTable() {
-  const rows = [
-    ['AI Autocomplete', 'Ctrl+Space'],
-    ['AI Chat (with context)', 'Ctrl+U'],
-    ['Fix Code', 'Alt+F'],
-    ['Explain Code', 'Alt+E'],
-    ['Code Review', 'Alt+R'],
-    ['Format Code', 'Alt+Shift+F'],
-    ['Save (in-memory)', 'Ctrl+S'],
-    ['Save to Disk (if FS open)', 'Ctrl+Shift+S'],
-    ['Toggle Comment', 'Ctrl+/'],
-    ['Find / Replace', 'Ctrl+H'],
-    ['Duplicate Line', 'Alt+Shift+D'],
-    ['Move Line Up/Down', 'Alt+↑/↓'],
-    ['Toggle Theme', 'Ctrl+Shift+T'],
-    ['Toggle Sidebar', 'Ctrl+B'],
-    ['New File', 'Ctrl+N'],
-  ];
-  $('#sc-body').html(rows.map(([a,k]) =>
-    `<tr style="border-bottom:1px solid var(--bd)"><td style="padding:5px 14px;color:var(--t1)">${a}</td><td style="padding:5px 14px;text-align:right"><span class="kbd">${k}</span></td></tr>`
-  ).join(''));
+  const cls = st==='ok' ? 'pbadge '+S.providers[p].badge : 'pbadge pb-e';
+  const txt = st==='ok' ? '✓ active' : st==='ex' ? '⚠ limited' : '✗ error';
+  $('#st-'+p).attr('class',cls).text(txt);
 }
 
-// ── Node / Tree helpers ───────────────────────────────────
-function nodeExt(n) { return n.name.split('.').pop().toLowerCase(); }
-function nodeIcon(n) {
-  if (n.type === 'folder') return n.open ? 'folder2-open' : 'folder2';
+// ── Node helpers ──────────────────────────────────────────
+const nodeExt = n => n.name.split('.').pop().toLowerCase();
+const nodeIcon = n => {
+  if (n.type==='folder') return n.open ? 'folder2-open' : 'folder2';
   return FILE_ICONS[nodeExt(n)] || 'file-code';
-}
-function nodeLang(n) { return EXT_LANG[nodeExt(n)] || 'php'; }
+};
+const nodeLang = n => EXT_LANG[nodeExt(n)] || 'php';
 function sortChildren(ids) {
-  return [...ids].sort((a, b) => {
-    const na = S.nodes[a], nb = S.nodes[b];
-    if (na.type !== nb.type) return na.type === 'folder' ? -1 : 1;
+  return [...ids].sort((a,b) => {
+    const na=S.nodes[a], nb=S.nodes[b];
+    if (na.type!==nb.type) return na.type==='folder'?-1:1;
     return na.name.localeCompare(nb.name);
   });
 }
-function getChildren(parentId) {
-  return sortChildren(S.childMap[parentId] || []);
-}
+function getChildren(parentId) { return sortChildren(S.childMap[parentId]||[]); }
 function addNode(node, parentId) {
-  S.nodes[node.id] = node;
-  node.parent = parentId || null;
+  S.nodes[node.id]=node; node.parent=parentId||null;
   if (parentId) {
-    if (!S.childMap[parentId]) S.childMap[parentId] = [];
+    if (!S.childMap[parentId]) S.childMap[parentId]=[];
     S.childMap[parentId].push(node.id);
-  } else {
-    S.rootIds.push(node.id);
-  }
+  } else { S.rootIds.push(node.id); }
 }
 function removeNode(id) {
-  const node = S.nodes[id];
-  if (!node) return;
-  // Remove from parent
-  if (node.parent) {
-    S.childMap[node.parent] = (S.childMap[node.parent] || []).filter(x => x !== id);
-  } else {
-    S.rootIds = S.rootIds.filter(x => x !== id);
-  }
-  // Remove children recursively
-  (S.childMap[id] || []).slice().forEach(cid => removeNode(cid));
-  delete S.childMap[id];
-  delete S.nodes[id];
-  delete S.fileData[id];
+  const node=S.nodes[id]; if (!node) return;
+  if (node.parent) S.childMap[node.parent]=(S.childMap[node.parent]||[]).filter(x=>x!==id);
+  else S.rootIds=S.rootIds.filter(x=>x!==id);
+  (S.childMap[id]||[]).slice().forEach(cid=>removeNode(cid));
+  delete S.childMap[id]; delete S.nodes[id]; delete S.fileData[id];
 }
 function getAllFileIds(parentId) {
-  let result = [];
-  const kids = parentId ? getChildren(parentId) : sortChildren(S.rootIds);
+  let result=[];
+  const kids=parentId?getChildren(parentId):sortChildren(S.rootIds);
   for (const id of kids) {
-    const n = S.nodes[id];
-    if (n.type === 'file') result.push(id);
-    else result = result.concat(getAllFileIds(id));
+    const n=S.nodes[id];
+    if (n.type==='file') result.push(id);
+    else result=result.concat(getAllFileIds(id));
   }
   return result;
+}
+function getFilePath(id) {
+  const parts=[];
+  let cur=S.nodes[id];
+  while (cur) { parts.unshift(cur.name); cur=cur.parent?S.nodes[cur.parent]:null; }
+  return parts.join('/');
 }
 
 // ── Editor ────────────────────────────────────────────────
 const editor = {
   init() {
     S.cm = CodeMirror.fromTextArea(document.getElementById('cm-editor'), {
-      mode: 'php', theme: 'dracula',
-      lineNumbers: true, lineWrapping: true,
-      autoCloseBrackets: true, matchBrackets: true,
-      autoCloseTags: true, styleActiveLine: true,
-      tabSize: 2, indentUnit: 2, indentWithTabs: false,
-      foldGutter: true,
-      gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
-      extraKeys: {
-        'Ctrl-Space':    () => IDE.ai.run('complete'),
-        'Ctrl-U':        () => IDE.chat.toggle(true),
-        'Ctrl-S':        () => IDE.fs.saveActive(),
-        'Ctrl-Shift-S':  () => IDE.fs.saveToDisk(),
-        'Ctrl-/':        cm => cm.execCommand('toggleComment'),
-        'Alt-F':         () => IDE.ai.run('fix'),
-        'Alt-E':         () => IDE.ai.run('explain'),
-        'Alt-R':         () => IDE.ai.run('review'),
-        'Alt-Shift-F':   () => IDE.ai.run('format'),
-        'Ctrl-Shift-T':  () => IDE.theme.toggle(),
-        'Ctrl-B':        () => IDE.sb.toggle(),
-        'Ctrl-N':        () => IDE.fs.newFilePrompt(null),
-        'Ctrl-H':        cm => cm.execCommand('findPersistentFromStart'),
-        'Alt-Shift-D':   cm => {
-          const ln = cm.getCursor().line;
-          cm.replaceRange('\n' + cm.getLine(ln), CodeMirror.Pos(ln));
-        },
-        'Alt-Up':   cm => cm.execCommand('swapLineUp'),
-        'Alt-Down': cm => cm.execCommand('swapLineDown'),
-        'Tab': cm => {
-          if (cm.somethingSelected()) cm.indentSelection('add');
-          else cm.replaceSelection('  ');
-        },
+      mode:'php', theme:'dracula',
+      lineNumbers:true, lineWrapping:true,
+      autoCloseBrackets:true, matchBrackets:true,
+      autoCloseTags:true, styleActiveLine:true,
+      tabSize:2, indentUnit:2, indentWithTabs:false,
+      foldGutter:true,
+      gutters:['CodeMirror-linenumbers','CodeMirror-foldgutter','cm-error-gutter'],
+      highlightSelectionMatches:{ showToken:/\w/, annotateScrollbar:true },
+      extraKeys:{
+        'Ctrl-Space':  ()=>IDE.ai.run('complete'),
+        'Ctrl-U':      ()=>IDE.chat.toggle(true),
+        'Ctrl-K':      ()=>IDE.inlineEdit.show(),
+        'Ctrl-S':      ()=>IDE.fs.saveActive(),
+        'Ctrl-Shift-S':()=>IDE.fs.saveToDisk(),
+        'Ctrl-F':      (cm)=>{IDE.findBar.toggle(false); return false;},
+        'Ctrl-H':      (cm)=>{IDE.findBar.toggle(true); return false;},
+        'Ctrl-/':      cm=>cm.execCommand('toggleComment'),
+        'Alt-F':       ()=>IDE.ai.run('fix'),
+        'Alt-E':       ()=>IDE.ai.run('explain'),
+        'Alt-R':       ()=>IDE.ai.run('review'),
+        'Alt-Shift-F': ()=>IDE.ai.run('format'),
+        'Ctrl-Shift-T':()=>IDE.theme.toggle(),
+        'Ctrl-B':      ()=>IDE.sb.toggle(),
+        'Ctrl-N':      ()=>IDE.fs.newFilePrompt(null),
+        'Ctrl-Shift-P':()=>IDE.cmdPalette.show(),
+        'Escape':      ()=>{ IDE.findBar.close(); IDE.inlineEdit.hide(); },
+        'Alt-Shift-D': cm=>{ const ln=cm.getCursor().line; cm.replaceRange('\n'+cm.getLine(ln), CodeMirror.Pos(ln)); },
+        'Alt-Up':   cm=>cm.execCommand('swapLineUp'),
+        'Alt-Down': cm=>cm.execCommand('swapLineDown'),
+        'Tab': cm=>{ if(cm.somethingSelected()) cm.indentSelection('add'); else cm.replaceSelection('  '); },
       },
     });
-    S.cm.on('cursorActivity', () => {
-      const c = S.cm.getCursor();
+
+    S.cm.on('cursorActivity', ()=>{
+      const c=S.cm.getCursor();
+      const sel=S.cm.getSelection();
       $('#si-cur').text(`Ln ${c.line+1}, Col ${c.ch+1}`);
-      $('#si-lines').text(S.cm.lineCount() + ' lines');
+      $('#si-lines').text(S.cm.lineCount()+' lines');
+      if (sel) {
+        const lines=sel.split('\n').length;
+        $('#si-sel').text(`${sel.length} chars${lines>1?', '+lines+' lines':''} selected`);
+        $('#sel-sep').show();
+      } else { $('#si-sel').text(''); $('#sel-sep').hide(); }
     });
-    S.cm.on('change', () => {
-      $('#si-lines').text(S.cm.lineCount() + ' lines');
+
+    S.cm.on('change', ()=>{
+      $('#si-lines').text(S.cm.lineCount()+' lines');
       if (S.activeFileId) {
-        const d = S.fileData[S.activeFileId];
+        const d=S.fileData[S.activeFileId];
         if (d) {
-          const cur = S.cm.getValue();
-          d.content = cur;
-          const dirty = cur !== d.savedContent;
-          $(`.tab[data-id="${S.activeFileId}"]`).toggleClass('dirty', dirty);
-          if (dirty) $('#si-save').html('<span style="color:var(--aco)">●</span> Unsaved');
-          else $('#si-save').html('<span style="color:var(--acg)">✓</span> Saved');
+          const cur=S.cm.getValue(); d.content=cur;
+          const dirty=cur!==d.savedContent;
+          $(`.tab[data-id="${S.activeFileId}"]`).toggleClass('dirty',dirty);
+          $('#si-save').html(dirty?'<span style="color:var(--aco)">●</span> Unsaved':'<span style="color:var(--ac2)">✓</span> Saved');
         }
       }
       IDE.probs.lintDebounced();
     });
-    setTimeout(() => S.cm.refresh(), 120);
+
+    // Gutter click for error tooltip
+    S.cm.on('gutterClick', (cm, line, gutter)=>{
+      if (gutter !== 'cm-error-gutter') return;
+      const prob = S.problems.find(p=>p.line===line);
+      if (prob) toast(`Ln ${line+1}: ${prob.msg}`, prob.sev==='error'?'error':'warning');
+    });
+
+    setTimeout(()=>S.cm.refresh(), 120);
   },
+
   setLang(lang) {
-    S.cm.setOption('mode', lang);
+    S.cm.setOption('mode',lang);
     $('#langSel').val(lang);
-    $('#si-lang').text(LANG_LABEL[lang] || lang);
-    if (S.activeFileId && S.fileData[S.activeFileId]) S.fileData[S.activeFileId].lang = lang;
+    $('#si-lang').text(LANG_LABEL[lang]||lang);
+    if (S.activeFileId && S.fileData[S.activeFileId]) S.fileData[S.activeFileId].lang=lang;
     IDE.probs.lintDebounced();
   },
+
   getSelOrAll() {
-    const sel = S.cm.getSelection();
-    if (sel && sel.trim()) return { text: sel, isSel: true };
-    return { text: S.cm.getValue(), isSel: false };
+    const sel=S.cm.getSelection();
+    if (sel && sel.trim()) return { text:sel, isSel:true };
+    return { text:S.cm.getValue(), isSel:false };
+  },
+};
+
+// ── Find / Replace ────────────────────────────────────────
+const findBar = {
+  _cursor: null,
+  _overlay: null,
+
+  toggle(showReplace) {
+    const bar=$('#find-bar');
+    if (bar.hasClass('show') && !showReplace) { this.close(); return; }
+    bar.addClass('show');
+    $('#fb-replace-row').toggle(showReplace);
+    const sel=S.cm.getSelection();
+    if (sel) $('#fb-find').val(sel);
+    setTimeout(()=>$('#fb-find').focus().select(), 50);
+    this._search();
+  },
+
+  close() {
+    $('#find-bar').removeClass('show');
+    this._clearOverlay();
+    if (this._cursor) { this._cursor=null; }
+    S.cm.focus();
+  },
+
+  _getFlags() {
+    return {
+      caseSensitive: $('#fb-case').is(':checked'),
+      wholeWord:     $('#fb-word').is(':checked'),
+      regexp:        $('#fb-regex').is(':checked'),
+    };
+  },
+
+  _buildQuery(raw) {
+    const f=this._getFlags();
+    if (!raw) return null;
+    if (f.regexp) { try { return new RegExp(raw, f.caseSensitive?'g':'gi'); } catch(e){ return null; } }
+    let q=raw.replace(/[-[\]{}()*+?.,\\^$|#\s]/g,'\\$&');
+    if (f.wholeWord) q='\\b'+q+'\\b';
+    return new RegExp(q, f.caseSensitive?'g':'gi');
+  },
+
+  _clearOverlay() {
+    S.cm.getAllMarks().forEach(m=>{ if(m._findMark) m.clear(); });
+  },
+
+  _search() {
+    this._clearOverlay();
+    const raw=$('#fb-find').val();
+    if (!raw) { $('#fb-count').text(''); return; }
+    const regex=this._buildQuery(raw);
+    if (!regex) { $('#fb-count').text('Bad regex'); return; }
+
+    const text=S.cm.getValue();
+    const lines=text.split('\n');
+    const matches=[];
+
+    lines.forEach((line, li)=>{
+      regex.lastIndex=0;
+      let m;
+      while ((m=regex.exec(line))!==null) {
+        matches.push({ from:{line:li,ch:m.index}, to:{line:li,ch:m.index+m[0].length} });
+        if (!regex.global) break;
+      }
+    });
+
+    // Highlight all matches
+    matches.forEach(({from,to})=>{
+      const mark=S.cm.markText(from,to,{ className:'CodeMirror-searching', _findMark:true });
+      mark._findMark=true;
+    });
+
+    S.findState.matches=matches;
+    S.findState.idx=0;
+    $('#fb-count').text(matches.length?`${matches.length} result${matches.length>1?'s':''}`:'No results');
+    if (matches.length) this._jumpTo(0);
+  },
+
+  _jumpTo(idx) {
+    if (!S.findState.matches.length) return;
+    idx=((idx%S.findState.matches.length)+S.findState.matches.length)%S.findState.matches.length;
+    S.findState.idx=idx;
+    const m=S.findState.matches[idx];
+    S.cm.setSelection(m.from,m.to);
+    S.cm.scrollIntoView({from:m.from,to:m.to},80);
+    $('#fb-count').text(`${idx+1}/${S.findState.matches.length}`);
+  },
+
+  next() { this._jumpTo(S.findState.idx+1); },
+  prev() { this._jumpTo(S.findState.idx-1); },
+
+  replaceOne() {
+    if (!S.findState.matches.length) return;
+    const m=S.findState.matches[S.findState.idx];
+    const rep=$('#fb-replace').val();
+    S.cm.replaceRange(rep,m.from,m.to);
+    this._search();
+    toast('Replaced 1', 'success');
+  },
+
+  replaceAll() {
+    if (!S.findState.matches.length) return;
+    const rep=$('#fb-replace').val();
+    const count=S.findState.matches.length;
+    // Replace in reverse to preserve positions
+    [...S.findState.matches].reverse().forEach(m=>S.cm.replaceRange(rep,m.from,m.to));
+    this._search();
+    toast(`Replaced ${count}`, 'success');
+  },
+
+  init() {
+    $('#fb-find').on('input',()=>this._search());
+    $('#fb-find').on('keydown',e=>{
+      if(e.key==='Enter'){ e.shiftKey?this.prev():this.next(); }
+      if(e.key==='Escape') this.close();
+    });
+    $('#fb-replace').on('keydown',e=>{ if(e.key==='Enter') this.replaceOne(); });
+    $('#fb-case,#fb-word,#fb-regex').on('change',()=>this._search());
+  },
+};
+
+// ── Inline Edit (Ctrl+K) ──────────────────────────────────
+const inlineEdit = {
+  show() {
+    const cursor=S.cm.cursorCoords(true,'window');
+    const ie=$('#inline-edit');
+    ie.css({ top:(cursor.bottom+4)+'px', left:Math.min(cursor.left,window.innerWidth-520)+'px' });
+    ie.addClass('show');
+    $('#inline-edit-in').val('').focus();
+  },
+  hide() { $('#inline-edit').removeClass('show'); S.cm.focus(); },
+  async run() {
+    const prompt=$('#inline-edit-in').val().trim();
+    if (!prompt) { this.hide(); return; }
+    const {text}=editor.getSelOrAll();
+    this.hide();
+    await IDE.ai.runWithPrompt(
+      `${prompt}\n\nCode:\n${text}`,
+      `You are an expert code editor. Apply the user's instruction to the code. Return ONLY the modified code, no explanations.`,
+      'Inline Edit', 'fix'
+    );
+  },
+  init() {
+    $('#inline-edit-in').on('keydown',e=>{
+      if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); this.run(); }
+      if(e.key==='Escape') this.hide();
+    });
+    $(document).on('mousedown',e=>{
+      if(!$(e.target).closest('#inline-edit').length) this.hide();
+    });
   },
 };
 
 // ── File System ───────────────────────────────────────────
 const fs = {
-  // ── Open Folder (File System Access API first, fallback to <input>) ──
   async openFolder() {
-    // Try File System Access API (Chrome/Edge)
     if (window.showDirectoryPicker) {
       try {
-        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-        S.fsDirectoryHandle = dirHandle;
-        S.projectName = dirHandle.name;
-        S.nodes = {}; S.fileData = {}; S.rootIds = []; S.childMap = {};
-        S.openTabIds = []; S.activeFileId = null;
-        S.cm.setValue('');
-        await this._loadFSDirectory(dirHandle, null, 0);
+        const dirHandle=await window.showDirectoryPicker({mode:'readwrite'});
+        S.fsDirectoryHandle=dirHandle; S.projectName=dirHandle.name;
+        S.nodes={}; S.fileData={}; S.rootIds=[]; S.childMap={};
+        S.openTabIds=[]; S.activeFileId=null; S.cm.setValue('');
+        await this._loadFSDir(dirHandle,null,0);
         this.renderTree(); this.renderTabs();
         $('#sb-proj-name').text(S.projectName.toUpperCase());
-        toast(`Opened: ${S.projectName}`, 'success');
-        // Open first file
-        const first = getAllFileIds(null)[0];
+        toast(`Opened: ${S.projectName}`,'success');
+        const first=getAllFileIds(null)[0];
         if (first) this.openFile(first);
         return;
-      } catch (e) {
-        if (e.name === 'AbortError') return; // user cancelled
-        // fallback
-      }
+      } catch(e) { if(e.name==='AbortError') return; }
     }
-    // Fallback: <input type="file" multiple>
-    const inp = document.createElement('input');
-    inp.type = 'file'; inp.multiple = true;
-    inp.accept = '.php,.js,.ts,.jsx,.tsx,.py,.html,.htm,.css,.sql,.sh,.bash,.yaml,.yml,.xml,.json,.md,.txt,.java,.c,.cpp,.h,.vue,.blade.php';
-    inp.onchange = async (e) => {
-      const files = Array.from(e.target.files);
-      if (!files.length) return;
-      S.nodes = {}; S.fileData = {}; S.rootIds = []; S.childMap = {};
-      S.openTabIds = []; S.activeFileId = null; S.cm.setValue('');
-      S.fsDirectoryHandle = null;
-      // Build tree from webkitRelativePath
+    // Fallback
+    const inp=document.createElement('input');
+    inp.type='file'; inp.multiple=true; inp.webkitdirectory=true;
+    inp.onchange=async(e)=>{
+      const files=Array.from(e.target.files); if(!files.length) return;
+      S.nodes={}; S.fileData={}; S.rootIds=[]; S.childMap={};
+      S.openTabIds=[]; S.activeFileId=null; S.cm.setValue('');
+      S.fsDirectoryHandle=null;
       for (const f of files) {
-        const path = f.webkitRelativePath || f.name;
-        const parts = path.split('/').filter(Boolean);
-        let parentId = null;
-        // Create folder nodes
-        for (let i = 0; i < parts.length - 1; i++) {
-          const fn = parts[i];
-          const existing = getChildren(parentId).find(id => S.nodes[id].name === fn && S.nodes[id].type === 'folder');
-          if (existing) { parentId = existing; continue; }
-          const fid = uid();
-          addNode({ id:fid, name:fn, type:'folder', open:i<2 }, parentId);
-          parentId = fid;
+        const path=f.webkitRelativePath||f.name;
+        const parts=path.split('/').filter(Boolean);
+        let parentId=null;
+        for (let i=0;i<parts.length-1;i++) {
+          const fn=parts[i];
+          const existing=getChildren(parentId).find(id=>S.nodes[id].name===fn&&S.nodes[id].type==='folder');
+          if(existing){parentId=existing;continue;}
+          const fid=uid(); addNode({id:fid,name:fn,type:'folder',open:i<2},parentId); parentId=fid;
         }
-        const fname = parts[parts.length - 1];
-        const fid = uid();
-        addNode({ id:fid, name:fname, type:'file' }, parentId);
-        const text = await f.text();
-        S.fileData[fid] = { content:text, savedContent:text, lang:EXT_LANG[fname.split('.').pop().toLowerCase()]||'php' };
+        const fname=parts[parts.length-1]; const fid=uid();
+        addNode({id:fid,name:fname,type:'file'},parentId);
+        const text=await f.text();
+        S.fileData[fid]={content:text,savedContent:text,lang:EXT_LANG[fname.split('.').pop().toLowerCase()]||'php'};
       }
-      S.projectName = files[0].webkitRelativePath ? files[0].webkitRelativePath.split('/')[0] : 'Project';
+      S.projectName=files[0].webkitRelativePath?files[0].webkitRelativePath.split('/')[0]:'Project';
       $('#sb-proj-name').text(S.projectName.toUpperCase());
       this.renderTree(); this.renderTabs();
-      const first = getAllFileIds(null)[0];
-      if (first) this.openFile(first);
-      toast(`Loaded ${files.length} file(s)`, 'success');
+      const first=getAllFileIds(null)[0]; if(first) this.openFile(first);
+      toast(`Loaded ${files.length} file(s)`,'success');
     };
     inp.click();
   },
 
-  async _loadFSDirectory(dirHandle, parentId, depth) {
-    const SKIP = new Set(['node_modules','.git','vendor','.DS_Store','.idea','dist','build','.next','__pycache__']);
-    const MAX_DEPTH = 8;
-    if (depth > MAX_DEPTH) return;
-    const entries = [];
+  async _loadFSDir(dirHandle, parentId, depth) {
+    const SKIP=new Set(['node_modules','.git','vendor','.DS_Store','.idea','dist','build','.next','__pycache__','storage/logs']);
+    if (depth>8) return;
+    const entries=[];
     for await (const entry of dirHandle.values()) entries.push(entry);
-    // Sort: folders first, then files
-    entries.sort((a,b) => {
-      if (a.kind !== b.kind) return a.kind === 'directory' ? -1 : 1;
-      return a.name.localeCompare(b.name);
-    });
+    entries.sort((a,b)=>{ if(a.kind!==b.kind) return a.kind==='directory'?-1:1; return a.name.localeCompare(b.name); });
     for (const entry of entries) {
-      if (SKIP.has(entry.name) || entry.name.startsWith('.')) continue;
-      const nid = uid();
-      if (entry.kind === 'directory') {
-        addNode({ id:nid, name:entry.name, type:'folder', open:depth<1, fsHandle:entry }, parentId);
-        await this._loadFSDirectory(entry, nid, depth+1);
+      if (SKIP.has(entry.name)||entry.name.startsWith('.')) continue;
+      const nid=uid();
+      if (entry.kind==='directory') {
+        addNode({id:nid,name:entry.name,type:'folder',open:depth<1,fsHandle:entry},parentId);
+        await this._loadFSDir(entry,nid,depth+1);
       } else {
-        const ext = entry.name.split('.').pop().toLowerCase();
-        if (!EXT_LANG[ext] && !['txt','md','json','svg'].includes(ext)) continue;
-        addNode({ id:nid, name:entry.name, type:'file', fsHandle:entry }, parentId);
-        S.fileData[nid] = { content:null, savedContent:null, lang:EXT_LANG[ext]||'php', fsHandle:entry };
+        const ext=entry.name.split('.').pop().toLowerCase();
+        if (!EXT_LANG[ext]&&!['txt','md','json','svg','env'].includes(ext)) continue;
+        addNode({id:nid,name:entry.name,type:'file',fsHandle:entry},parentId);
+        S.fileData[nid]={content:null,savedContent:null,lang:EXT_LANG[ext]||'php',fsHandle:entry};
       }
     }
   },
 
-  async _loadFileContent(id) {
-    const d = S.fileData[id];
-    if (!d) return '';
-    if (d.content !== null) return d.content;
-    // Load from FS handle
+  async _loadContent(id) {
+    const d=S.fileData[id]; if(!d) return '';
+    if (d.content!==null) return d.content;
     if (d.fsHandle) {
-      try {
-        const file = await d.fsHandle.getFile();
-        const text = await file.text();
-        d.content = text; d.savedContent = text;
-        return text;
-      } catch(e) { d.content = ''; d.savedContent = ''; return ''; }
+      try { const file=await d.fsHandle.getFile(); const text=await file.text(); d.content=text; d.savedContent=text; return text; }
+      catch(e) { d.content=''; d.savedContent=''; return ''; }
     }
-    d.content = ''; d.savedContent = '';
-    return '';
+    d.content=''; d.savedContent=''; return '';
   },
 
-  // ── Open / Close tabs ──
   async openFile(id) {
-    if (!S.nodes[id] || S.nodes[id].type !== 'file') return;
-    // Save current
-    if (S.activeFileId && S.fileData[S.activeFileId]) {
-      S.fileData[S.activeFileId].content = S.cm.getValue();
-    }
-    S.activeFileId = id;
+    if (!S.nodes[id]||S.nodes[id].type!=='file') return;
+    if (S.activeFileId && S.fileData[S.activeFileId]) S.fileData[S.activeFileId].content=S.cm.getValue();
+    S.activeFileId=id;
     if (!S.openTabIds.includes(id)) S.openTabIds.push(id);
-    const d = S.fileData[id];
-    if (!d) return;
-    const content = await this._loadFileContent(id);
+    const d=S.fileData[id]; if (!d) return;
+    const content=await this._loadContent(id);
     S.cm.setValue(content);
-    const lang = d.lang || 'php';
-    S.cm.setOption('mode', lang);
+    const lang=d.lang||'php';
+    S.cm.setOption('mode',lang);
     editor.setLang(lang);
-    this.renderTabs();
-    this.renderTree();
-    // Save indicator
-    const dirty = d.content !== d.savedContent;
-    if (dirty) $('#si-save').html('<span style="color:var(--aco)">●</span> Unsaved');
-    else $('#si-save').html('<span style="color:var(--acg)">✓</span> Saved');
-    setTimeout(() => { S.cm.refresh(); S.cm.focus(); }, 40);
+    // Breadcrumb
+    const path=getFilePath(id);
+    const parts=path.split('/');
+    let bc='';
+    parts.forEach((p,i)=>{ bc+=`<span class="bc-item${i===parts.length-1?' bc-last':''}">${escH(p)}</span>`; if(i<parts.length-1) bc+='<span class="bc-sep"> › </span>'; });
+    $('#breadcrumb').html(`<span style="color:var(--t3);font-size:10px"><i class="bi bi-file-code" style="margin-right:3px"></i></span>`+bc);
+
+    this.renderTabs(); this.renderTree();
+    const dirty=d.content!==d.savedContent;
+    $('#si-save').html(dirty?'<span style="color:var(--aco)">●</span> Unsaved':'<span style="color:var(--ac2)">✓</span> Saved');
+    setTimeout(()=>{ S.cm.refresh(); S.cm.focus(); },40);
     IDE.probs.lintDebounced();
   },
 
   closeTab(id) {
-    S.openTabIds = S.openTabIds.filter(x => x !== id);
-    if (S.activeFileId === id) {
-      S.activeFileId = S.openTabIds.length ? S.openTabIds[S.openTabIds.length - 1] : null;
+    S.openTabIds=S.openTabIds.filter(x=>x!==id);
+    if (S.activeFileId===id) {
+      S.activeFileId=S.openTabIds.length?S.openTabIds[S.openTabIds.length-1]:null;
       if (S.activeFileId) this.openFile(S.activeFileId);
-      else { S.cm.setValue(''); $('#si-save').text(''); }
+      else { S.cm.setValue(''); $('#si-save').text(''); $('#breadcrumb').html('<span class="bc-item">No file open</span>'); }
     }
     this.renderTabs();
   },
 
-  // ── Save (in-memory + optional disk write) ──
   saveActive() {
-    if (!S.activeFileId) { toast('No file open', 'warning'); return; }
-    const cur = S.cm.getValue();
-    const d = S.fileData[S.activeFileId];
-    if (!d) return;
-    d.content = cur;
-    d.savedContent = cur;
+    if (!S.activeFileId) { toast('No file open','warning'); return; }
+    const cur=S.cm.getValue(); const d=S.fileData[S.activeFileId]; if(!d) return;
+    d.content=cur; d.savedContent=cur;
     $(`.tab[data-id="${S.activeFileId}"]`).removeClass('dirty');
-    $('#si-save').html('<span style="color:var(--acg)">✓</span> Saved');
-    // Write to disk if FS handle available
+    $('#si-save').html('<span style="color:var(--ac2)">✓</span> Saved');
     this._writeToDisk(S.activeFileId, cur);
-    toast('Saved', 'success');
-    setStatus('Saved', 'ok');
-    setTimeout(() => setStatus('Ready'), 2000);
+    toast('Saved','success'); setStatus('Saved','ok'); setTimeout(()=>setStatus('Ready'),2000);
   },
 
   saveAll() {
-    let count = 0;
+    let count=0;
     for (const id of S.openTabIds) {
-      const d = S.fileData[id];
-      if (!d) continue;
-      const cur = id === S.activeFileId ? S.cm.getValue() : d.content;
-      if (cur !== null && cur !== d.savedContent) {
-        d.content = cur; d.savedContent = cur;
+      const d=S.fileData[id]; if(!d) continue;
+      const cur=id===S.activeFileId?S.cm.getValue():d.content;
+      if (cur!==null&&cur!==d.savedContent) {
+        d.content=cur; d.savedContent=cur;
         $(`.tab[data-id="${id}"]`).removeClass('dirty');
-        this._writeToDisk(id, cur);
-        count++;
+        this._writeToDisk(id,cur); count++;
       }
     }
-    $('#si-save').html('<span style="color:var(--acg)">✓</span> All saved');
-    toast(count ? `Saved ${count} file(s)` : 'All up to date', 'success');
+    toast(count?`Saved ${count} file(s)`:'All up to date','success');
   },
 
   async saveToDisk() {
     if (!S.activeFileId) return;
-    const cur = S.cm.getValue();
-    const d = S.fileData[S.activeFileId];
-    if (!d) return;
-    d.content = cur; d.savedContent = cur;
-    if (d.fsHandle) {
-      await this._writeToDisk(S.activeFileId, cur);
-      toast('Written to disk', 'success');
-    } else {
-      // download
-      const node = S.nodes[S.activeFileId];
-      const blob = new Blob([cur], { type:'text/plain' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob); a.download = node.name; a.click();
+    const cur=S.cm.getValue(); const d=S.fileData[S.activeFileId]; if(!d) return;
+    d.content=cur; d.savedContent=cur;
+    if (d.fsHandle) { await this._writeToDisk(S.activeFileId,cur); toast('Written to disk','success'); }
+    else {
+      const node=S.nodes[S.activeFileId];
+      const blob=new Blob([cur],{type:'text/plain'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=node.name; a.click();
       URL.revokeObjectURL(a.href);
     }
   },
 
   async _writeToDisk(id, content) {
-    const d = S.fileData[id];
-    if (!d || !d.fsHandle) return;
-    try {
-      const writable = await d.fsHandle.createWritable();
-      await writable.write(content);
-      await writable.close();
-    } catch(e) { /* silent - may be blocked if not FS API */ }
+    const d=S.fileData[id]; if(!d||!d.fsHandle) return;
+    try { const w=await d.fsHandle.createWritable(); await w.write(content); await w.close(); } catch(e){}
   },
 
-  // ── New File / Folder ──
   newFilePrompt(parentId) {
-    this._showNFModal('New File', 'File name', 'untitled.php', () => {
-      const name = $('#nf-input').val().trim() || 'untitled.php';
-      this._createFile(name, parentId);
+    this._showNFModal('New File','File name','untitled.php',()=>{
+      const name=$('#nf-input').val().trim()||'untitled.php';
+      this._createFile(name,parentId);
     });
   },
   newFolderPrompt(parentId) {
-    this._showNFModal('New Folder', 'Folder name', 'new-folder', () => {
-      const name = $('#nf-input').val().trim() || 'new-folder';
-      this._createFolder(name, parentId);
+    this._showNFModal('New Folder','Folder name','new-folder',()=>{
+      const name=$('#nf-input').val().trim()||'new-folder';
+      this._createFolder(name,parentId);
     });
   },
   _showNFModal(title, label, val, onConfirm) {
     $('#nf-title').text(title); $('#nf-label').text(label); $('#nf-input').val(val);
-    const m = new bootstrap.Modal(document.getElementById('nfModal'));
-    m.show();
-    setTimeout(() => { $('#nf-input').select(); }, 300);
-    $('#nf-ok').off('click').on('click', () => { m.hide(); onConfirm(); });
-    $('#nf-input').off('keydown').on('keydown', e => { if(e.key==='Enter') { m.hide(); onConfirm(); } });
+    const m=new bootstrap.Modal(document.getElementById('nfModal')); m.show();
+    setTimeout(()=>$('#nf-input').select(),300);
+    $('#nf-ok').off('click').on('click',()=>{ m.hide(); onConfirm(); });
+    $('#nf-input').off('keydown').on('keydown',e=>{ if(e.key==='Enter'){m.hide();onConfirm();} });
   },
   _createFile(name, parentId) {
-    const ext = name.split('.').pop().toLowerCase();
-    const lang = EXT_LANG[ext] || 'php';
-    const content = STARTERS[lang] || '// Start coding\n';
-    const id = uid();
-    addNode({ id, name, type:'file' }, parentId || null);
-    S.fileData[id] = { content, savedContent: '', lang };
-    // Expand parent
-    if (parentId && S.nodes[parentId]) S.nodes[parentId].open = true;
+    const ext=name.split('.').pop().toLowerCase(); const lang=EXT_LANG[ext]||'php';
+    const content='<?php\n\n// Start coding\n'; const id=uid();
+    addNode({id,name,type:'file'},parentId||null);
+    S.fileData[id]={content,savedContent:'',lang};
+    if(parentId&&S.nodes[parentId]) S.nodes[parentId].open=true;
     this.renderTree(); this.openFile(id);
   },
   _createFolder(name, parentId) {
-    const id = uid();
-    addNode({ id, name, type:'folder', open:true }, parentId || null);
-    if (parentId && S.nodes[parentId]) S.nodes[parentId].open = true;
+    const id=uid(); addNode({id,name,type:'folder',open:true},parentId||null);
+    if(parentId&&S.nodes[parentId]) S.nodes[parentId].open=true;
     this.renderTree();
   },
   renamePrompt(id) {
-    const node = S.nodes[id];
-    if (!node) return;
-    const newName = prompt('Rename:', node.name);
-    if (!newName || newName.trim() === node.name) return;
-    node.name = newName.trim();
-    if (node.type === 'file') {
-      const ext = node.name.split('.').pop().toLowerCase();
-      const lang = EXT_LANG[ext] || 'php';
-      if (S.fileData[id]) S.fileData[id].lang = lang;
-    }
+    const node=S.nodes[id]; if(!node) return;
+    const newName=prompt('Rename:',node.name);
+    if(!newName||newName.trim()===node.name) return;
+    node.name=newName.trim();
+    if(node.type==='file'){ const ext=node.name.split('.').pop().toLowerCase(); if(S.fileData[id]) S.fileData[id].lang=EXT_LANG[ext]||'php'; }
     this.renderTree(); this.renderTabs();
   },
   deleteNode(id) {
-    const node = S.nodes[id];
-    if (!node) return;
-    if (!confirm(`Delete "${node.name}"?`)) return;
-    // Close tabs
-    const affectedFiles = node.type === 'file' ? [id] : getAllFileIds(id);
-    affectedFiles.forEach(fid => { S.openTabIds = S.openTabIds.filter(x => x !== fid); });
-    if (affectedFiles.includes(S.activeFileId)) {
-      S.activeFileId = S.openTabIds.length ? S.openTabIds[S.openTabIds.length - 1] : null;
+    const node=S.nodes[id]; if(!node) return;
+    if(!confirm(`Delete "${node.name}"?`)) return;
+    const affected=node.type==='file'?[id]:getAllFileIds(id);
+    affected.forEach(fid=>{ S.openTabIds=S.openTabIds.filter(x=>x!==fid); });
+    if(affected.includes(S.activeFileId)) {
+      S.activeFileId=S.openTabIds.length?S.openTabIds[S.openTabIds.length-1]:null;
     }
-    removeNode(id);
-    this.renderTree(); this.renderTabs();
-    if (S.activeFileId) this.openFile(S.activeFileId);
-    else S.cm.setValue('');
+    removeNode(id); this.renderTree(); this.renderTabs();
+    if(S.activeFileId) this.openFile(S.activeFileId); else S.cm.setValue('');
   },
-  collapseAll() {
-    Object.values(S.nodes).forEach(n => { if (n.type === 'folder') n.open = false; });
-    this.renderTree();
-  },
+  collapseAll() { Object.values(S.nodes).forEach(n=>{ if(n.type==='folder') n.open=false; }); this.renderTree(); },
 
-  // ── Render Tree ──
   renderTree() {
-    const tree = $('#file-tree');
-    tree.empty();
-    if (S.rootIds.length === 0) {
-      tree.html(`<div class="tree-empty"><i class="bi bi-folder2-open" style="font-size:22px;display:block;margin-bottom:6px"></i>No files open<br><small>Open Folder or New File</small></div>`);
+    const tree=$('#file-tree'); tree.empty();
+    if (!S.rootIds.length) {
+      tree.html(`<div class="tree-empty"><i class="bi bi-folder2-open" style="font-size:24px;display:block;margin-bottom:8px;opacity:.5"></i>No files open<br><small>Open Folder or New File to start</small></div>`);
       return;
     }
     this._renderNodes(S.rootIds, tree, 0);
   },
   _renderNodes(ids, container, depth) {
-    const sorted = sortChildren(ids);
-    sorted.forEach(id => {
-      const node = S.nodes[id];
-      if (!node) return;
-      const indent = depth * 14 + 6;
-      const row = document.createElement('div');
-      row.className = 'tree-row' + (id === S.activeFileId ? ' active' : '');
-      row.setAttribute('data-id', id);
-      row.setAttribute('data-type', node.type);
-
-      if (node.type === 'folder') {
-        row.innerHTML = `
-          <span class="tr-indent" style="width:${indent}px"></span>
-          <span class="tr-chevron"><i class="bi bi-chevron-${node.open?'down':'right'}"></i></span>
-          <i class="bi bi-${node.open?'folder2-open':'folder2'} tr-icon" style="color:var(--acy)"></i>
-          <span class="tr-name">${escH(node.name)}</span>
-          <span class="tr-acts">
-            <button class="tra" title="New File" data-act="newfile"><i class="bi bi-file-plus"></i></button>
-            <button class="tra" title="New Folder" data-act="newfolder"><i class="bi bi-folder-plus"></i></button>
-            <button class="tra" title="Rename" data-act="rename"><i class="bi bi-pencil"></i></button>
-            <button class="tra" title="Delete" data-act="delete" style="color:var(--acr)"><i class="bi bi-trash"></i></button>
-          </span>`;
-        row.addEventListener('click', (e) => {
-          if (e.target.closest('.tr-acts')) return;
-          node.open = !node.open;
-          this.renderTree();
-        });
+    sortChildren(ids).forEach(id=>{
+      const node=S.nodes[id]; if(!node) return;
+      const indent=depth*14+6;
+      const row=document.createElement('div');
+      row.className='tree-row'+(id===S.activeFileId?' active':'');
+      row.setAttribute('data-id',id);
+      if (node.type==='folder') {
+        row.innerHTML=`<span class="tr-indent" style="width:${indent}px"></span><span class="tr-chevron"><i class="bi bi-chevron-${node.open?'down':'right'}"></i></span><i class="bi bi-${nodeIcon(node)} tr-icon" style="color:var(--acy)"></i><span class="tr-name">${escH(node.name)}</span><span class="tr-acts"><button class="tra" data-act="newfile" title="New File"><i class="bi bi-file-plus"></i></button><button class="tra" data-act="newfolder" title="New Folder"><i class="bi bi-folder-plus"></i></button><button class="tra" data-act="rename"><i class="bi bi-pencil"></i></button><button class="tra" data-act="delete" style="color:var(--acr)"><i class="bi bi-trash"></i></button></span>`;
+        row.addEventListener('click',e=>{ if(e.target.closest('.tr-acts')) return; node.open=!node.open; this.renderTree(); });
       } else {
-        const dirty = S.fileData[id] && S.fileData[id].content !== S.fileData[id].savedContent;
-        row.innerHTML = `
-          <span class="tr-indent" style="width:${indent + 14}px"></span>
-          <span class="tr-chevron"></span>
-          <i class="bi bi-${nodeIcon(node)} tr-icon"></i>
-          <span class="tr-name">${escH(node.name)}${dirty?'<span style="color:var(--aco);font-size:8px;margin-left:3px">●</span>':''}</span>
-          <span class="tr-acts">
-            <button class="tra" title="Rename" data-act="rename"><i class="bi bi-pencil"></i></button>
-            <button class="tra" title="Delete" data-act="delete" style="color:var(--acr)"><i class="bi bi-trash"></i></button>
-          </span>`;
-        row.addEventListener('click', (e) => {
-          if (e.target.closest('.tr-acts')) return;
-          IDE.fs.openFile(id);
-        });
+        const dirty=S.fileData[id]&&S.fileData[id].content!==S.fileData[id].savedContent;
+        row.innerHTML=`<span class="tr-indent" style="width:${indent+14}px"></span><span class="tr-chevron"></span><i class="bi bi-${nodeIcon(node)} tr-icon" style="font-size:12px"></i><span class="tr-name">${escH(node.name)}${dirty?'<span style="color:var(--aco);font-size:7px;margin-left:3px">●</span>':''}</span><span class="tr-acts"><button class="tra" data-act="rename"><i class="bi bi-pencil"></i></button><button class="tra" data-act="delete" style="color:var(--acr)"><i class="bi bi-trash"></i></button></span>`;
+        row.addEventListener('click',e=>{ if(e.target.closest('.tr-acts')) return; IDE.fs.openFile(id); });
       }
-
-      // Action buttons inside tree row
-      row.querySelectorAll('.tra').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const act = btn.getAttribute('data-act');
-          if (act === 'newfile') IDE.fs.newFilePrompt(id);
-          else if (act === 'newfolder') IDE.fs.newFolderPrompt(id);
-          else if (act === 'rename') IDE.fs.renamePrompt(id);
-          else if (act === 'delete') IDE.fs.deleteNode(id);
+      row.querySelectorAll('.tra').forEach(btn=>{
+        btn.addEventListener('click',e=>{
+          e.stopPropagation(); const act=btn.getAttribute('data-act');
+          if(act==='newfile') IDE.fs.newFilePrompt(id);
+          else if(act==='newfolder') IDE.fs.newFolderPrompt(id);
+          else if(act==='rename') IDE.fs.renamePrompt(id);
+          else if(act==='delete') IDE.fs.deleteNode(id);
         });
       });
-
-      // Right-click context menu
-      row.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        IDE.ctxMenu.show(e, id);
-      });
-
+      row.addEventListener('contextmenu',e=>{ e.preventDefault(); IDE.ctxMenu.show(e,id); });
       container.append(row);
-      // Render children if folder is open
-      if (node.type === 'folder' && node.open && S.childMap[id] && S.childMap[id].length) {
-        this._renderNodes(S.childMap[id], container, depth + 1);
-      }
+      if(node.type==='folder'&&node.open&&S.childMap[id]&&S.childMap[id].length)
+        this._renderNodes(S.childMap[id],container,depth+1);
     });
   },
 
-  // ── Render Tabs ──
   renderTabs() {
-    const bar = $('#tabs-bar');
-    bar.find('.tab').remove();
-    S.openTabIds.forEach(id => {
-      const node = S.nodes[id];
-      const d = S.fileData[id];
-      if (!node || !d) return;
-      const dirty = d.content !== d.savedContent;
-      const ext = nodeExt(node);
-      const icon = FILE_ICONS[ext] || 'file-code';
-      const tab = document.createElement('div');
-      tab.className = 'tab' + (id === S.activeFileId ? ' active' : '') + (dirty ? ' dirty' : '');
-      tab.setAttribute('data-id', id);
-      tab.innerHTML = `<i class="bi bi-${icon}" style="font-size:11px;color:var(--t3);flex-shrink:0"></i><span class="tn">${escH(node.name)}</span><span class="tc" data-close="${id}"><i class="bi bi-x"></i></span>`;
-      tab.addEventListener('click', (e) => {
-        if (e.target.closest('.tc')) return;
-        IDE.fs.openFile(id);
-      });
-      tab.querySelector('.tc').addEventListener('click', (e) => {
-        e.stopPropagation();
-        IDE.fs.closeTab(id);
-      });
+    const bar=$('#tabs-bar'); bar.find('.tab').remove();
+    S.openTabIds.forEach(id=>{
+      const node=S.nodes[id]; const d=S.fileData[id]; if(!node||!d) return;
+      const dirty=d.content!==d.savedContent;
+      const ext=nodeExt(node); const icon=FILE_ICONS[ext]||'file-code';
+      const tab=document.createElement('div');
+      tab.className='tab'+(id===S.activeFileId?' active':'')+(dirty?' dirty':'');
+      tab.setAttribute('data-id',id);
+      tab.innerHTML=`<i class="bi bi-${icon}" style="font-size:10px;color:var(--t3);flex-shrink:0"></i><span class="tn">${escH(node.name)}</span><span class="tc" data-close="${id}"><i class="bi bi-x"></i></span>`;
+      tab.addEventListener('click',e=>{ if(e.target.closest('.tc')) return; IDE.fs.openFile(id); });
+      tab.querySelector('.tc').addEventListener('click',e=>{ e.stopPropagation(); IDE.fs.closeTab(id); });
       bar.prepend(tab);
     });
   },
@@ -1249,357 +1555,450 @@ const fs = {
 const ctxMenu = {
   _targetId: null,
   show(e, id) {
-    this._targetId = id;
-    const node = S.nodes[id];
-    const isFolder = node && node.type === 'folder';
-    $('#cm-new-file').toggle(isFolder);
-    $('#cm-new-folder').toggle(isFolder);
-    const menu = document.getElementById('ctx-menu');
-    menu.style.display = 'block';
-    menu.style.left = Math.min(e.clientX, window.innerWidth - 170) + 'px';
-    menu.style.top = Math.min(e.clientY, window.innerHeight - 140) + 'px';
+    this._targetId=id;
+    const node=S.nodes[id]; const isFolder=node&&node.type==='folder';
+    $('#cm-new-file,#cm-new-folder').toggle(isFolder);
+    const menu=document.getElementById('ctx-menu');
+    menu.style.display='block';
+    menu.style.left=Math.min(e.clientX,window.innerWidth-170)+'px';
+    menu.style.top=Math.min(e.clientY,window.innerHeight-140)+'px';
   },
-  hide() { document.getElementById('ctx-menu').style.display = 'none'; },
+  hide() { document.getElementById('ctx-menu').style.display='none'; },
   init() {
-    $('#cm-new-file').on('click', () => { IDE.fs.newFilePrompt(this._targetId); this.hide(); });
-    $('#cm-new-folder').on('click', () => { IDE.fs.newFolderPrompt(this._targetId); this.hide(); });
-    $('#cm-rename').on('click', () => { IDE.fs.renamePrompt(this._targetId); this.hide(); });
-    $('#cm-delete').on('click', () => { IDE.fs.deleteNode(this._targetId); this.hide(); });
-    $(document).on('click', () => this.hide());
-    $(document).on('keydown', e => { if(e.key === 'Escape') this.hide(); });
+    $('#cm-new-file').on('click',()=>{ IDE.fs.newFilePrompt(this._targetId); this.hide(); });
+    $('#cm-new-folder').on('click',()=>{ IDE.fs.newFolderPrompt(this._targetId); this.hide(); });
+    $('#cm-rename').on('click',()=>{ IDE.fs.renamePrompt(this._targetId); this.hide(); });
+    $('#cm-delete').on('click',()=>{ IDE.fs.deleteNode(this._targetId); this.hide(); });
+    $(document).on('click',()=>this.hide());
+    $(document).on('keydown',e=>{ if(e.key==='Escape'){ this.hide(); IDE.cmdPalette.hide(); } });
   },
 };
 
 // ── Sidebar ───────────────────────────────────────────────
 const sb = {
-  toggle() { $('#sidebar').toggleClass('collapsed'); setTimeout(() => S.cm?.refresh(), 220); },
-  toggleSection(name) {
-    if (name === 'problems') {
-      const b = $('#problems-body');
-      b.is(':visible') ? b.hide() : b.show();
-      $('#prob-chev').toggleClass('bi-chevron-right bi-chevron-down');
-    }
+  toggle() {
+    $('#sidebar').toggleClass('collapsed');
+    $('#btn-explorer').toggleClass('active');
+    setTimeout(()=>S.cm?.refresh(),220);
   },
 };
 
 // ── Problems / Lint ───────────────────────────────────────
 const probs = {
   _timer: null,
-  lintDebounced() {
-    clearTimeout(this._timer);
-    this._timer = setTimeout(() => this.lint(), 1000);
-  },
+  lintDebounced() { clearTimeout(this._timer); this._timer=setTimeout(()=>this.lint(),1200); },
   lint() {
-    S.problems = [];
-    S.cm.getAllMarks().forEach(m => { if (m._errMark) m.clear(); });
-    const code = S.cm.getValue();
-    const lang = getLang();
-    if (lang === 'php') this._lintPHP(code);
-    else if (lang === 'javascript') this._lintJS(code);
-    else if (lang === 'python') this._lintPython(code);
-    else if (lang === 'css') this._lintCSS(code);
-    else if (lang === 'sql') this._lintSQL(code);
+    S.problems=[];
+    // Clear gutter markers and line backgrounds
+    S.cm.getAllMarks().forEach(m=>{ if(m._errMark) m.clear(); });
+    S.cm.clearGutter('cm-error-gutter');
+    const code=S.cm.getValue(); const lang=getLang();
+    if(lang==='php') this._lintPHP(code);
+    else if(lang==='javascript') this._lintJS(code);
+    else if(lang==='python') this._lintPython(code);
+    else if(lang==='css') this._lintCSS(code);
+    else if(lang==='sql') this._lintSQL(code);
     this._render();
   },
-  _add(line, msg, sev) {
-    S.problems.push({ line: line - 1, msg, sev: sev || 'error' });
-    if (line > 0) {
-      const m = S.cm.markText({ line:line-1,ch:0 }, { line:line-1,ch:9999 }, { className: sev==='error'?'cm-err-line':'cm-warn-line' });
-      m._errMark = true;
-    }
+  _add(line, msg, sev='error') {
+    if(line<1) line=1;
+    S.problems.push({line:line-1,msg,sev});
+    // Line background
+    const mark=S.cm.markText({line:line-1,ch:0},{line:line-1,ch:9999},{
+      className:sev==='error'?'cm-err-bg':'cm-warn-bg',
+      _errMark:true,
+    });
+    mark._errMark=true;
+    // Gutter marker
+    const el=document.createElement('span');
+    el.className=sev==='error'?'CodeMirror-gutter-error':'CodeMirror-gutter-warning';
+    el.title=msg;
+    el.innerHTML=sev==='error'?'✖':'⚠';
+    S.cm.setGutterMarker(line-1,'cm-error-gutter',el);
   },
   _lintPHP(code) {
-    const lines = code.split('\n');
-    lines.forEach((l, i) => {
-      const ln = i + 1; const t = l.trim();
-      if (!t || t.startsWith('//') || t.startsWith('#') || t.startsWith('*') || t.startsWith('/*')) return;
-      if ((t.startsWith('$') || t.startsWith('return ') || t.startsWith('echo ')) && !t.endsWith('{') && !t.endsWith('}') && !t.endsWith(',') && !t.endsWith(';') && !t.endsWith('(') && !t.includes('//'))
-        this._add(ln, 'Possible missing semicolon', 'warning');
-      ['eval(','exec(','system(','shell_exec(','passthru('].forEach(f => { if (l.includes(f)) this._add(ln, `Dangerous: ${f}`, 'error'); });
-      if ((l.includes('$_GET')||l.includes('$_POST')||l.includes('$_REQUEST')) && (l.includes('SELECT')||l.includes('query(')))
-        this._add(ln, 'Potential SQL injection — use prepared statements', 'error');
-      if (t.startsWith('var_dump(') || t.startsWith('print_r(') || t.startsWith('dd(') || t.startsWith('dump('))
-        this._add(ln, 'Debug statement left in code', 'warning');
-      ['mysql_connect','mysql_query','mysql_fetch'].forEach(f => { if (l.includes(f)) this._add(ln, `Deprecated: ${f}()`, 'warning'); });
+    const lines=code.split('\n');
+    lines.forEach((l,i)=>{
+      const ln=i+1; const t=l.trim();
+      if(!t||t.startsWith('//')||t.startsWith('#')||t.startsWith('*')||t.startsWith('/*')) return;
+      if((t.startsWith('$')||t.startsWith('return ')||t.startsWith('echo '))&&!t.endsWith('{')&&!t.endsWith('}')&&!t.endsWith(',')&&!t.endsWith(';')&&!t.endsWith('(')&&!t.includes('//'))
+        this._add(ln,'Possible missing semicolon','warning');
+      ['eval(','exec(','system(','shell_exec(','passthru('].forEach(f=>{ if(l.includes(f)) this._add(ln,`Dangerous function: ${f}`,'error'); });
+      if((l.includes('$_GET')||l.includes('$_POST'))&&(l.includes('SELECT')||l.includes('query(')))
+        this._add(ln,'Potential SQL injection — use prepared statements','error');
+      if(t.startsWith('var_dump(')||t.startsWith('print_r(')||t.startsWith('dd(')||t.startsWith('dump('))
+        this._add(ln,'Debug statement in code','warning');
+      ['mysql_connect','mysql_query','mysql_fetch'].forEach(f=>{ if(l.includes(f)) this._add(ln,`Deprecated: ${f}()`,'warning'); });
     });
   },
   _lintJS(code) {
-    code.split('\n').forEach((l, i) => {
-      const ln = i+1; const t = l.trim();
-      if (!t || t.startsWith('//')) return;
-      if (t.includes('console.log(')) this._add(ln, 'console.log() left in code', 'warning');
-      if (t.includes('debugger')) this._add(ln, 'debugger statement', 'error');
-      if (t.startsWith('var ')) this._add(ln, 'Use const/let instead of var', 'warning');
-      if (t.includes('eval(')) this._add(ln, 'Avoid eval() — security risk', 'error');
-      if (t.includes('document.write(')) this._add(ln, 'Avoid document.write()', 'error');
-      if (/[^=!<>]==[^=]/.test(t) && !t.includes('=>')) this._add(ln, 'Use === instead of ==', 'warning');
+    code.split('\n').forEach((l,i)=>{
+      const ln=i+1; const t=l.trim();
+      if(!t||t.startsWith('//')) return;
+      if(t.includes('console.log(')) this._add(ln,'console.log() left in code','warning');
+      if(t.includes('debugger')) this._add(ln,'debugger statement found','error');
+      if(t.startsWith('var ')) this._add(ln,'Use const/let instead of var','warning');
+      if(t.includes('eval(')) this._add(ln,'Avoid eval() — security risk','error');
+      if(/[^=!<>]==[^=]/.test(t)&&!t.includes('=>')) this._add(ln,'Use === instead of ==','warning');
     });
   },
   _lintPython(code) {
-    code.split('\n').forEach((l, i) => {
-      const ln = i+1; const t = l.trim();
-      if (!t || t.startsWith('#')) return;
-      if (t.startsWith('print ') && !t.includes('(')) this._add(ln, 'Python 2 print — use print()', 'error');
-      if (/except\s*:/.test(t)) this._add(ln, 'Bare except: — catch specific exceptions', 'warning');
-      if (l.includes('\t')) this._add(ln, 'Tab indentation — use 4 spaces', 'warning');
+    code.split('\n').forEach((l,i)=>{
+      const ln=i+1; const t=l.trim();
+      if(!t||t.startsWith('#')) return;
+      if(t.startsWith('print ')&&!t.includes('(')) this._add(ln,'Python 2 print statement — use print()','error');
+      if(/except\s*:/.test(t)) this._add(ln,'Bare except: — catch specific exceptions','warning');
     });
   },
   _lintCSS(code) {
-    code.split('\n').forEach((l, i) => {
-      const ln = i+1; const t = l.trim();
-      if (!t || t.startsWith('/*')) return;
-      if (t.includes('!important')) this._add(ln, 'Avoid !important', 'warning');
+    code.split('\n').forEach((l,i)=>{
+      if(l.includes('!important')) this._add(i+1,'Avoid !important','warning');
     });
   },
   _lintSQL(code) {
-    const up = code.toUpperCase();
-    if (/DELETE\b/.test(up) && !/WHERE\b/.test(up)) this._add(1, 'DELETE without WHERE — dangerous!', 'error');
-    if (/UPDATE\b/.test(up) && !/WHERE\b/.test(up)) this._add(1, 'UPDATE without WHERE — dangerous!', 'error');
-    code.split('\n').forEach((l, i) => { if (/SELECT\s+\*/i.test(l)) this._add(i+1, 'Avoid SELECT * — specify columns', 'warning'); });
+    const up=code.toUpperCase();
+    if(/DELETE\b/.test(up)&&!/WHERE\b/.test(up)) this._add(1,'DELETE without WHERE clause — dangerous!','error');
+    if(/UPDATE\b/.test(up)&&!/WHERE\b/.test(up)) this._add(1,'UPDATE without WHERE clause — dangerous!','error');
+    code.split('\n').forEach((l,i)=>{ if(/SELECT\s+\*/i.test(l)) this._add(i+1,'SELECT * — specify columns instead','warning'); });
   },
   _render() {
-    const errs = S.problems.filter(p => p.sev === 'error').length;
-    const warns = S.problems.filter(p => p.sev === 'warning').length;
-    const total = errs + warns;
-    // Status bar
-    if (total === 0) {
-      $('#ec').attr('class','si ok').html('<i class="bi bi-check-circle-fill"></i> No problems');
+    const errs=S.problems.filter(p=>p.sev==='error').length;
+    const warns=S.problems.filter(p=>p.sev==='warning').length;
+    const total=errs+warns;
+    if(!total) {
+      $('#ec').attr('class','si ok click').html('<i class="bi bi-check-circle-fill"></i> No issues');
     } else {
-      let h = '';
-      if (errs) h += `<i class="bi bi-x-circle-fill" style="color:var(--acr)"></i> ${errs} `;
-      if (warns) h += `<i class="bi bi-exclamation-triangle-fill" style="color:var(--acy)"></i> ${warns}`;
-      $('#ec').attr('class','si').html(h);
+      let h='';
+      if(errs) h+=`<i class="bi bi-x-circle-fill" style="color:var(--acr)"></i> ${errs} `;
+      if(warns) h+=`<i class="bi bi-exclamation-triangle-fill" style="color:var(--acy)"></i> ${warns}`;
+      $('#ec').attr('class','si click').html(h);
     }
-    $('#prob-count').text(total ? `(${total})` : '');
-    // Sidebar problems
-    const body = $('#problems-body');
-    body.empty();
-    S.problems.forEach(p => {
-      const icon = p.sev==='error'
-        ? '<i class="bi bi-x-circle-fill prob-icon" style="color:var(--acr)"></i>'
-        : '<i class="bi bi-exclamation-triangle-fill prob-icon" style="color:var(--acy)"></i>';
-      const el = $(`<div class="prob-item">${icon}<span class="prob-msg">${escH(p.msg)}</span><span class="prob-ln">Ln ${p.line+1}</span></div>`);
-      el.on('click', () => { S.cm.setCursor({line:p.line,ch:0}); S.cm.focus(); });
-      body.append(el);
+    $('#prob-count').text(total?`(${total})`:'');
+    const list=$('#prob-list'); list.empty();
+    S.problems.forEach(p=>{
+      const icon=p.sev==='error'
+        ?'<i class="bi bi-x-circle-fill prob-icon" style="color:var(--acr)"></i>'
+        :'<i class="bi bi-exclamation-triangle-fill prob-icon" style="color:var(--acy)"></i>';
+      const el=$(`<div class="prob-row">${icon}<span class="prob-msg">${escH(p.msg)}</span><span class="prob-loc">Ln ${p.line+1}</span></div>`);
+      el.on('click',()=>{ S.cm.setCursor({line:p.line,ch:0}); S.cm.focus(); });
+      list.append(el);
     });
   },
   togglePanel() {
-    const b = $('#problems-body');
-    b.is(':visible') ? b.hide() : b.show();
-    $('#prob-chev').toggleClass('bi-chevron-right bi-chevron-down');
+    const l=$('#prob-list'); l.is(':visible')?l.hide():l.show();
+    $('#prob-chev').toggleClass('bi-chevron-down bi-chevron-right');
+  },
+};
+
+// ── Output Tabs ───────────────────────────────────────────
+const outTabs = {
+  switch(pane) {
+    $('.out-tab').removeClass('active');
+    $('.out-pane').removeClass('active');
+    $(`.out-tab[data-pane="${pane}"]`).addClass('active');
+    $(`#${pane}`).addClass('active');
+    $('#out-area').addClass('open');
   },
 };
 
 // ── Output Panel ──────────────────────────────────────────
-const panel = {
-  _lastOutput: '',
-  _lastAction: '',
+const out = {
+  _last: '', _lastAction: '',
   show(title, content, action, provider) {
-    this._lastOutput = content;
-    this._lastAction = action;
-    $('#out-title-txt').text(title);
-    if (provider) {
-      const p = S.providers[provider];
-      $('#out-badge').attr('class','pbadge '+p.badge).text(provider.charAt(0).toUpperCase()+provider.slice(1));
-    }
-    const isCode = ['complete','fix','doc','format','refactor','optimize','tests','convert'].includes(action);
+    this._last=content; this._lastAction=action;
+    if(provider) updateProvUI(provider);
+    const isCode=['complete','fix','doc','format','refactor','optimize','tests','convert','inline'].includes(action);
     $('#out-body').html(
       isCode
-        ? `<pre style="white-space:pre-wrap;line-height:1.65;font-family:var(--fmono);color:var(--t1)">${escH(content)}</pre>`
-        : `<pre style="white-space:pre-wrap;font-family:var(--fui);font-size:12.5px;line-height:1.7;color:var(--t1)">${escH(content)}</pre>`
+        ?`<pre style="white-space:pre-wrap;line-height:1.65;font-family:var(--fmono);color:var(--t1)">${escH(content)}</pre>`
+        :`<pre style="white-space:pre-wrap;font-family:var(--fui);font-size:12.5px;line-height:1.7;color:var(--t1)">${escH(content)}</pre>`
     );
-    $('#out-panel').addClass('open');
+    outTabs.switch('out-main');
     $('#applyBtn').toggle(isCode);
   },
-  close() { $('#out-panel').removeClass('open'); },
+  close() { $('#out-area').removeClass('open'); },
   copy() {
-    const t = this._lastOutput;
-    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject())
-      .catch(() => { const el=document.createElement('textarea');el.value=t;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el); });
-    toast('Copied', 'success');
+    const t=this._last;
+    (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject())
+      .catch(()=>{ const el=document.createElement('textarea');el.value=t;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el); });
+    toast('Copied','success');
   },
   apply() {
-    if (!this._lastOutput) return;
-    const clean = this._lastOutput.replace(/^```[\w]*\n?/gm,'').replace(/```\s*$/gm,'').trim();
-    const {isSel} = editor.getSelOrAll();
-    if (isSel) S.cm.replaceSelection(clean);
-    else S.cm.setValue(clean);
-    // Mark unsaved
-    if (S.activeFileId && S.fileData[S.activeFileId]) {
-      S.fileData[S.activeFileId].content = S.cm.getValue();
-    }
-    S.cm.focus();
-    this.close();
-    toast('Applied to editor', 'success');
+    if(!this._last) return;
+    const clean=this._last.replace(/^```[\w]*\n?/gm,'').replace(/```\s*$/gm,'').trim();
+    const {text:origText,isSel}=editor.getSelOrAll();
+    // Show diff
+    this._showDiff(origText, clean);
+    if(isSel) S.cm.replaceSelection(clean); else S.cm.setValue(clean);
+    if(S.activeFileId&&S.fileData[S.activeFileId]) S.fileData[S.activeFileId].content=S.cm.getValue();
+    S.cm.focus(); toast('Applied to editor','success');
     IDE.probs.lintDebounced();
+  },
+  _showDiff(original, updated) {
+    const origLines=original.split('\n');
+    const updLines=updated.split('\n');
+    let html='';
+    const maxLen=Math.max(origLines.length,updLines.length);
+    for(let i=0;i<Math.min(maxLen,200);i++) {
+      const o=origLines[i]; const u=updLines[i];
+      if(o===undefined) { html+=`<div class="diff-line diff-add">+ ${escH(u)}</div>`; }
+      else if(u===undefined) { html+=`<div class="diff-line diff-del">- ${escH(o)}</div>`; }
+      else if(o!==u) {
+        html+=`<div class="diff-line diff-del">- ${escH(o)}</div>`;
+        html+=`<div class="diff-line diff-add">+ ${escH(u)}</div>`;
+      } else { html+=`<div class="diff-line diff-ctx">  ${escH(o)}</div>`; }
+    }
+    $('#diff-body').html(html||'<div style="padding:12px;color:var(--t3)">No changes detected</div>');
+    outTabs.switch('out-diff');
+  },
+};
+
+// ── Preview ───────────────────────────────────────────────
+const preview = {
+  show() {
+    const code=S.cm.getValue();
+    const lang=getLang();
+    const frame=document.getElementById('preview-frame');
+    if(lang==='htmlmixed'||lang==='html') {
+      frame.srcdoc=code;
+    } else if(lang==='css') {
+      frame.srcdoc=`<!DOCTYPE html><html><head><style>${code}</style></head><body><div class="demo"><h1>Heading</h1><p>Paragraph text here</p><button>Button</button><a href="#">Link</a></div></body></html>`;
+    } else {
+      frame.srcdoc=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:monospace;padding:20px;background:#1a1b23;color:#e2e4ea}pre{white-space:pre-wrap;}</style></head><body><pre>${escH(code)}</pre></body></html>`;
+    }
+    outTabs.switch('out-preview');
   },
 };
 
 // ── AI API ────────────────────────────────────────────────
 const aiApi = {
   async call(provider, userMsg, sysMsg) {
-    const key = getKey(provider);
-    if (!key) throw { type:'no_key' };
-    const p = S.providers[provider];
-    const temp = getTemp();
-
-    if (provider === 'gemini') {
-      const contents = [];
-      if (sysMsg) {
-        contents.push({ role:'user', parts:[{text:sysMsg}] });
-        contents.push({ role:'model', parts:[{text:'Understood. I will follow these instructions precisely.'}] });
-      }
-      contents.push({ role:'user', parts:[{text:userMsg}] });
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${p.model}:generateContent?key=${key}`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ contents, generationConfig:{ maxOutputTokens:4096, temperature:temp, topP:0.9 } })
+    const key=getKey(provider); if(!key) throw {type:'no_key'};
+    const p=S.providers[provider]; const temp=getTemp();
+    if(provider==='gemini') {
+      const contents=[];
+      if(sysMsg) { contents.push({role:'user',parts:[{text:sysMsg}]}); contents.push({role:'model',parts:[{text:'Understood.'}]}); }
+      contents.push({role:'user',parts:[{text:userMsg}]});
+      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${p.model}:generateContent?key=${key}`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents,generationConfig:{maxOutputTokens:8192,temperature:temp,topP:0.9}})
       });
-      if (r.status === 429) throw { type:'ex' };
-      if (!r.ok) throw { type:'err', msg:`Gemini ${r.status}` };
-      const d = await r.json();
-      if (d.error) throw { type:'err', msg:d.error.message };
-      return d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if(r.status===429) throw {type:'ex'};
+      if(!r.ok) throw {type:'err',msg:`Gemini ${r.status}`};
+      const d=await r.json();
+      if(d.error) throw {type:'err',msg:d.error.message};
+      return d.candidates?.[0]?.content?.parts?.[0]?.text||'';
     }
-
-    if (provider === 'mistral') {
-      const msgs = sysMsg ? [{role:'system',content:sysMsg}] : [];
-      msgs.push({ role:'user', content:userMsg });
-      const r = await fetch('https://api.mistral.ai/v1/chat/completions', {
-        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-        body: JSON.stringify({ model:p.model, messages:msgs, max_tokens:4096, temperature:temp })
+    if(provider==='mistral') {
+      const msgs=sysMsg?[{role:'system',content:sysMsg}]:[];
+      msgs.push({role:'user',content:userMsg});
+      const r=await fetch('https://api.mistral.ai/v1/chat/completions',{
+        method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+        body:JSON.stringify({model:p.model,messages:msgs,max_tokens:8192,temperature:temp})
       });
-      if (r.status === 429) throw { type:'ex' };
-      if (!r.ok) throw { type:'err', msg:`Mistral ${r.status}` };
-      const d = await r.json();
-      return d.choices?.[0]?.message?.content || '';
+      if(r.status===429) throw {type:'ex'};
+      if(!r.ok) throw {type:'err',msg:`Mistral ${r.status}`};
+      const d=await r.json();
+      return d.choices?.[0]?.message?.content||'';
     }
-
-    if (provider === 'groq') {
-      const msgs = sysMsg ? [{role:'system',content:sysMsg}] : [];
-      msgs.push({ role:'user', content:userMsg });
-      const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-        body: JSON.stringify({ model:p.model, messages:msgs, max_tokens:4096, temperature:temp })
+    if(provider==='groq') {
+      const msgs=sysMsg?[{role:'system',content:sysMsg}]:[];
+      msgs.push({role:'user',content:userMsg});
+      const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+        method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+        body:JSON.stringify({model:p.model,messages:msgs,max_tokens:8192,temperature:temp})
       });
-      if (r.status === 429) throw { type:'ex' };
-      if (!r.ok) throw { type:'err', msg:`Groq ${r.status}` };
-      const d = await r.json();
-      return d.choices?.[0]?.message?.content || '';
+      if(r.status===429) throw {type:'ex'};
+      if(!r.ok) throw {type:'err',msg:`Groq ${r.status}`};
+      const d=await r.json();
+      return d.choices?.[0]?.message?.content||'';
     }
   },
-
   async callWithFallback(userMsg, sysMsg) {
-    const avail = providerOrder();
-    if (!avail.length) throw { type:'no_providers' };
-    let lastErr = null;
-    for (let i = 0; i < avail.length; i++) {
-      const p = avail[i];
-      updateProvUI(p);
-      showProg(15 + i * 25);
+    const avail=providerOrder();
+    if(!avail.length) throw {type:'no_providers'};
+    let lastErr=null;
+    for(let i=0;i<avail.length;i++) {
+      const p=avail[i]; updateProvUI(p); showProg(15+i*25);
       try {
-        const result = await this.call(p, userMsg, sysMsg);
-        setProvSt(p, 'ok');
-        return { result, provider: p };
+        const result=await this.call(p,userMsg,sysMsg);
+        setProvSt(p,'ok');
+        return {result,provider:p};
       } catch(e) {
-        if (e.type === 'ex') { S.providers[p].ex = true; setProvSt(p, 'ex'); toast(`${S.providers[p].name} rate limited — switching…`,'warning'); }
-        else if (e.type !== 'no_key') { setProvSt(p, 'err'); toast(`${S.providers[p].name} error — trying next…`,'warning'); }
-        lastErr = e;
+        if(e.type==='ex'){S.providers[p].ex=true;setProvSt(p,'ex');toast(`${S.providers[p].name} rate limited — switching…`,'warning');}
+        else if(e.type!=='no_key'){setProvSt(p,'err');toast(`${S.providers[p].name} error — trying next…`,'warning');}
+        lastErr=e;
       }
     }
-    throw lastErr || { type:'all_failed' };
+    throw lastErr||{type:'all_failed'};
   },
+};
+
+// ── AI System Prompts ─────────────────────────────────────
+const SYS = (lang) => {
+  const friendly=LANG_FRIENDLY[lang]||lang;
+  return `You are an expert ${friendly} developer and AI coding assistant (like Trae AI / Cursor).
+
+CRITICAL RULES:
+1. CODE outputs (complete/fix/format/refactor/optimize/doc/tests/convert): return ONLY raw code. NO markdown fences, NO preamble, NO explanation after.
+2. EXPLANATION/REVIEW outputs: use bullet points, be technical and precise.
+3. Preserve existing indentation and coding conventions.
+4. NEVER break working functionality unless asked.
+5. PHP/Laravel: follow PSR-12, use Eloquent, proper validation, CSRF, XSS prevention.
+6. JavaScript: ES6+, avoid var, handle errors properly.
+7. No debug statements, no TODOs unless asked.
+8. Production-ready code only.`;
+};
+
+const AI_ACTIONS = {
+  complete:{ title:'⚡ Autocomplete',  btn:'b-complete', isCode:true,  prompt:(c,l)=>`Continue and complete this ${LANG_FRIENDLY[l]||l} code from exactly where it ends. Match the coding style:\n\n${c}` },
+  fix:     { title:'🔧 Fixed Code',    btn:'b-fix',      isCode:true,  prompt:(c,l)=>`Fix ALL bugs, syntax errors, logic issues, and security problems in this ${LANG_FRIENDLY[l]||l} code. Return the complete corrected code:\n\n${c}` },
+  explain: { title:'💡 Explanation',   btn:'b-explain',  isCode:false, prompt:(c,l)=>`Explain this ${LANG_FRIENDLY[l]||l} code in detail. Cover: what it does, how it works, key concepts, potential issues, complexity:\n\n${c}` },
+  doc:     { title:'📝 Documented',    btn:'b-doc',      isCode:true,  prompt:(c,l)=>`Add comprehensive PHPDoc/JSDoc/docstrings to this ${LANG_FRIENDLY[l]||l} code. Document all functions, classes, params, return types:\n\n${c}` },
+  review:  { title:'🛡 Code Review',  btn:'b-review',   isCode:false, prompt:(c,l)=>`Review this ${LANG_FRIENDLY[l]||l} code thoroughly. Use: 🔴 Critical | 🟡 Warning | 🟢 Suggestion. Cover security, performance, readability, best practices:\n\n${c}` },
+  format:  { title:'✨ Formatted',     btn:'b-format',   isCode:true,  prompt:(c,l)=>`Format this ${LANG_FRIENDLY[l]||l} code per official style guide. Fix indentation, spacing, blank lines. Return ONLY the formatted code:\n\n${c}` },
+  refactor:{ title:'♻ Refactored',    btn:'b-refactor', isCode:true,  prompt:(c,l)=>`Refactor this ${LANG_FRIENDLY[l]||l} code: improve structure, apply SOLID principles, reduce complexity. Add a comment block at top summarizing changes:\n\n${c}` },
+  optimize:{ title:'⚡ Optimized',     btn:'b-optimize', isCode:true,  prompt:(c,l)=>`Optimize this ${LANG_FRIENDLY[l]||l} code for performance. Fix N+1 queries, improve algorithms. Comment each major optimization:\n\n${c}` },
+  tests:   { title:'🧪 Unit Tests',    btn:'b-tests',    isCode:true,  prompt:(c,l)=>`Write comprehensive unit tests for this ${LANG_FRIENDLY[l]||l} code. Cover happy path, edge cases, error cases:\n\n${c}` },
+  convert: { title:'🔄 Converted',     btn:'b-convert',  isCode:true,  prompt:(c,l,x)=>`Convert this code to ${x}. Maintain all functionality. Return ONLY the converted code:\n\n${c}` },
 };
 
 // ── AI Actions ────────────────────────────────────────────
-const SYSTEM_BASE = (lang) => {
-  const friendly = LANG_FRIENDLY[lang] || lang;
-  return `You are a world-class ${friendly} developer and AI coding assistant with expert-level knowledge.
-
-CRITICAL RULES — follow without exception:
-1. For CODE outputs (complete/fix/format/refactor/optimize/doc/tests/convert): return ONLY raw code. NO markdown fences (\`\`\`), NO preamble text, NO explanation after the code. Just the code itself.
-2. For EXPLANATION/REVIEW outputs: use clear bullet points, be technical and precise.
-3. Preserve existing indentation style and coding conventions from the input.
-4. NEVER remove or break working functionality unless explicitly asked.
-5. For PHP/Laravel: follow PSR-12, use Eloquent best practices, proper validation, security (prepared statements, CSRF, XSS prevention).
-6. For JavaScript: ES6+, avoid deprecated patterns (var, ==), handle errors properly.
-7. For Python: PEP 8, type hints, proper error handling.
-8. Code quality: production-ready, no debug statements, no TODOs unless asked.
-9. Security: no eval(), no SQL injection risks, validate all input.
-10. Accuracy over speed — take the time to get it right.`;
-};
-
-const AI_META = {
-  complete: { title:'⚡ Autocomplete',   label:'Autocomplete',   btn:'b-complete', isCode:true,
-    prompt:(code,lang)=>`Continue and complete this ${LANG_FRIENDLY[lang]||lang} code. Start from exactly where it left off. Match the exact coding style:\n\n${code}` },
-  fix:      { title:'🔧 Fixed Code',     label:'Fix',            btn:'b-fix',      isCode:true,
-    prompt:(code,lang)=>`Fix ALL bugs, syntax errors, logic errors, and security issues in this ${LANG_FRIENDLY[lang]||lang} code. Return the complete corrected code:\n\n${code}` },
-  explain:  { title:'💡 Explanation',    label:'Explain',        btn:'b-explain',  isCode:false,
-    prompt:(code,lang)=>`Explain this ${LANG_FRIENDLY[lang]||lang} code. Cover: what it does, how it works, key functions/classes, any issues, time/space complexity if relevant:\n\n${code}` },
-  doc:      { title:'📝 Documented',     label:'Add Docs',       btn:'b-doc',      isCode:true,
-    prompt:(code,lang)=>`Add comprehensive PHPDoc/JSDoc/docstrings and inline comments to this ${LANG_FRIENDLY[lang]||lang} code. Document all functions, classes, parameters, return types:\n\n${code}` },
-  review:   { title:'🛡 Code Review',   label:'Review',         btn:'b-review',   isCode:false,
-    prompt:(code,lang)=>`Review this ${LANG_FRIENDLY[lang]||lang} code. For each issue use: 🔴 Critical | 🟡 Warning | 🟢 Suggestion. Cover security, performance, readability, best practices:\n\n${code}` },
-  format:   { title:'✨ Formatted',      label:'Format',         btn:'b-format',   isCode:true,
-    prompt:(code,lang)=>`Format this ${LANG_FRIENDLY[lang]||lang} code following the official style guide. Fix indentation, spacing, blank lines. Return ONLY the formatted code:\n\n${code}` },
-  refactor: { title:'♻ Refactored',     label:'Refactor',       btn:'b-refactor', isCode:true,
-    prompt:(code,lang)=>`Refactor this ${LANG_FRIENDLY[lang]||lang} code: improve structure, readability, apply SOLID principles and design patterns where appropriate. Add a 2-line comment at the top explaining what changed:\n\n${code}` },
-  optimize: { title:'⚡ Optimized',      label:'Optimize',       btn:'b-optimize', isCode:true,
-    prompt:(code,lang)=>`Optimize this ${LANG_FRIENDLY[lang]||lang} code for performance. Fix N+1 queries, improve algorithms, reduce complexity. Add a comment about what was improved:\n\n${code}` },
-  tests:    { title:'🧪 Unit Tests',     label:'Generate Tests', btn:'b-tests',    isCode:true,
-    prompt:(code,lang)=>`Write comprehensive unit tests for this ${LANG_FRIENDLY[lang]||lang} code using the standard framework (PHPUnit/Pest for PHP, Jest for JS, pytest for Python). Cover happy path, edge cases, and error cases:\n\n${code}` },
-  convert:  { title:'🔄 Converted',     label:'Convert',        btn:'b-convert',  isCode:true,
-    prompt:(code,lang,extra)=>`Convert this code to ${extra}. Maintain all functionality. Return ONLY the converted code:\n\n${code}` },
-};
-
 const ai = {
   async run(action) {
-    if (S.isLoading) return;
-    const { text, isSel } = editor.getSelOrAll();
-    if (!text.trim()) { toast('No code to process', 'warning'); return; }
-    const avail = providerOrder();
-    if (!avail.length) {
-      panel.show('⚠ No API Key', 'Add at least one API key in Settings.\n\nFree keys:\n• Gemini: aistudio.google.com/apikey\n• Mistral: console.mistral.ai/api-keys\n• Groq: console.groq.com/keys', action, 'gemini');
-      toast('No API key — open Settings', 'error'); return;
+    if(S.isLoading) return;
+    const {text,isSel}=editor.getSelOrAll();
+    if(!text.trim()) { toast('No code to process','warning'); return; }
+    const avail=providerOrder();
+    if(!avail.length) {
+      out.show('⚠ No API Key','Add at least one free API key in Settings.\n\n• Gemini: aistudio.google.com/apikey\n• Mistral: console.mistral.ai/api-keys\n• Groq: console.groq.com/keys','explain','gemini');
+      toast('No API key — open Settings','error'); return;
     }
-    const meta = AI_META[action];
-    const lang = getLang();
-    let extra = '';
-    if (action === 'convert') {
-      extra = prompt('Convert to what? (e.g. TypeScript, Python, Vue 3, React)');
-      if (!extra) return;
+    const meta=AI_ACTIONS[action]; const lang=getLang();
+    let extra='';
+    if(action==='convert') {
+      extra=prompt('Convert to? (e.g. TypeScript, Python, Vue 3, React)');
+      if(!extra) return;
     }
-    const userPrompt = meta.prompt(text, lang, extra);
-    const sysPrompt = SYSTEM_BASE(lang);
+    await this.runWithPrompt(meta.prompt(text,lang,extra), SYS(lang), meta.title, action);
+  },
 
-    S.isLoading = true;
-    disableAi(true);
-    const btn = $('#' + meta.btn);
-    const origHtml = btn.html();
-    btn.html(`<i class="bi bi-arrow-repeat spin"></i> ${meta.label}…`);
-    setStatus(`${meta.label}…`, 'loading');
-    showProg(10);
+  async runWithPrompt(userPrompt, sysPrompt, title, action) {
+    S.isLoading=true; disableAi(true);
+    const meta=AI_ACTIONS[action]||{btn:null};
+    const btn=meta.btn?$('#'+meta.btn):null;
+    const origHtml=btn?btn.html():'';
+    if(btn) btn.html(`<i class="bi bi-arrow-repeat spin"></i> Running…`);
+    const lang=getLang();
+    if(!sysPrompt) sysPrompt=SYS(lang);
+    setStatus(`${title}…`,'loading'); showProg(10);
+    try {
+      const {result,provider}=await aiApi.callWithFallback(userPrompt,sysPrompt);
+      showProg(100);
+      const clean=result.replace(/^```[\w]*\n?/gm,'').replace(/```\s*$/gm,'').trim();
+      out.show(title,clean,action,provider);
+      setStatus(`${title} done`,'ok'); setTimeout(()=>setStatus('Ready'),3000);
+      toast(`${title} ✓`,'success');
+    } catch(e) {
+      const msg=e.type==='no_providers'?'No API keys configured.':e.type==='all_failed'?'All providers failed.':e.msg||'Request failed';
+      out.show('⚠ Error',msg,action,'gemini');
+      setStatus('Failed','err'); setTimeout(()=>setStatus('Ready'),4000); toast(msg,'error');
+    } finally {
+      S.isLoading=false; disableAi(false);
+      if(btn) btn.html(origHtml); showProg(0);
+    }
+  },
+};
+
+// ── AI Agent ──────────────────────────────────────────────
+const agent = {
+  async start() {
+    if(S.isLoading) return;
+    const avail=providerOrder();
+    if(!avail.length) { toast('No API key','error'); return; }
+    const task=prompt('Describe the coding task for the AI Agent:\n(e.g. "Add authentication to this Laravel controller with login, logout, and middleware protection")');
+    if(!task) return;
+
+    const code=S.cm.getValue(); const lang=getLang();
+    outTabs.switch('out-agent');
+    $('#out-area').addClass('open');
+    const body=$('#agent-body'); body.empty();
+
+    // Define steps
+    const steps=[
+      { id:'analyze',  label:'Analyzing codebase & task', icon:'bi-search' },
+      { id:'plan',     label:'Creating implementation plan', icon:'bi-list-check' },
+      { id:'execute',  label:'Writing code', icon:'bi-code-slash' },
+      { id:'review',   label:'Reviewing & fixing output', icon:'bi-shield-check' },
+    ];
+
+    const stepEls={};
+    steps.forEach(s=>{
+      const el=$(`<div class="agent-step"><div class="agent-step-hdr pending" id="ag-hdr-${s.id}"><i class="bi ${s.icon}"></i>${s.label}<span class="ms-auto" id="ag-st-${s.id}" style="font-size:10px">Pending</span></div><div class="agent-step-body" id="ag-body-${s.id}"></div></div>`);
+      el.find(`.agent-step-hdr`).on('click',()=>el.find('.agent-step-body').toggleClass('show'));
+      body.append(el);
+      stepEls[s.id]=el;
+    });
+
+    S.isLoading=true; disableAi(true); setStatus('Agent running…','loading');
+
+    const setStep=(id,st,content)=>{
+      $(`#ag-hdr-${id}`).attr('class',`agent-step-hdr ${st}`);
+      $(`#ag-st-${id}`).text(st==='running'?'Running…':st==='done'?'✓ Done':st==='error'?'✗ Error':'Pending');
+      if(content) { $(`#ag-body-${id}`).text(content).addClass('show'); }
+    };
 
     try {
-      const { result, provider } = await aiApi.callWithFallback(userPrompt, sysPrompt);
-      showProg(100);
-      const clean = result.replace(/^```[\w]*\n?/gm,'').replace(/```\s*$/gm,'').trim();
-      panel.show(meta.title, clean, action, provider);
-      setStatus(`${meta.label} done`, 'ok');
-      setTimeout(() => setStatus('Ready'), 3000);
-      toast(`${meta.label} complete ✓`, 'success');
+      // Step 1: Analyze
+      setStep('analyze','running');
+      const analysis=await aiApi.callWithFallback(
+        `Analyze this ${LANG_FRIENDLY[lang]||lang} code and the task: "${task}"\n\nCode:\n${code}\n\nProvide a brief analysis of: current state, what needs to change, potential issues.`,
+        'You are an expert code analyst. Be concise and technical.'
+      );
+      setStep('analyze','done',analysis.result);
+
+      // Step 2: Plan
+      setStep('plan','running');
+      const plan=await aiApi.callWithFallback(
+        `Based on this analysis:\n${analysis.result}\n\nCreate a step-by-step implementation plan for: "${task}"\nList 3-6 specific coding steps.`,
+        'You are a software architect. Create a concise, actionable implementation plan.'
+      );
+      setStep('plan','done',plan.result);
+
+      // Step 3: Execute
+      setStep('execute','running');
+      const executed=await aiApi.callWithFallback(
+        `Implement this plan for the task: "${task}"\n\nPlan:\n${plan.result}\n\nOriginal code:\n${code}\n\nReturn ONLY the complete implemented code. No markdown, no explanation.`,
+        SYS(lang)
+      );
+      const cleanCode=executed.result.replace(/^```[\w]*\n?/gm,'').replace(/```\s*$/gm,'').trim();
+      setStep('execute','done','Code written ('+cleanCode.split('\n').length+' lines)');
+
+      // Step 4: Review
+      setStep('review','running');
+      const reviewed=await aiApi.callWithFallback(
+        `Review and fix this code implementation:\n${cleanCode}\n\nTask was: "${task}"\n\nFix any bugs, improve error handling, ensure best practices. Return ONLY the final code.`,
+        SYS(lang)
+      );
+      const finalCode=reviewed.result.replace(/^```[\w]*\n?/gm,'').replace(/```\s*$/gm,'').trim();
+      setStep('review','done','Review complete');
+
+      // Show result
+      out.show('🤖 Agent Result', finalCode, 'fix', reviewed.provider);
+      outTabs.switch('out-main');
+
+      // Add apply button in agent panel
+      const applyBtn=$(`<div style="padding:10px"><button class="btn-ai g" onclick="IDE.out.apply();IDE.outTabs.switch('out-agent')"><i class="bi bi-check-lg"></i> Apply Agent Result to Editor</button></div>`);
+      body.append(applyBtn);
+
+      toast('Agent completed ✓','success'); setStatus('Agent done','ok');
+      setTimeout(()=>setStatus('Ready'),3000);
     } catch(e) {
-      const msg = e.type === 'no_providers' ? 'No API keys configured.'
-        : e.type === 'all_failed' ? 'All providers failed. Check keys or network.'
-        : (e.msg || 'Request failed');
-      panel.show('⚠ Error', msg, action, 'gemini');
-      setStatus('Failed', 'err');
-      setTimeout(() => setStatus('Ready'), 4000);
-      toast(msg, 'error');
+      setStep('execute','error',e.msg||'Failed');
+      toast('Agent failed: '+(e.msg||'Unknown error'),'error');
+      setStatus('Agent failed','err'); setTimeout(()=>setStatus('Ready'),4000);
     } finally {
-      S.isLoading = false;
-      disableAi(false);
-      btn.html(origHtml);
-      showProg(0);
+      S.isLoading=false; disableAi(false);
     }
   },
 };
@@ -1607,207 +2006,279 @@ const ai = {
 // ── AI Chat ───────────────────────────────────────────────
 const chat = {
   toggle(captureCtx) {
-    S.chatOpen = !S.chatOpen;
-    if (S.chatOpen) {
+    S.chatOpen=!S.chatOpen;
+    if(S.chatOpen) {
       $('#chat-win').addClass('show');
-      if (captureCtx) {
-        const { text, isSel } = editor.getSelOrAll();
-        if (text.trim()) {
-          S.chatCtx = text;
-          S.chatCtxLabel = isSel ? 'selection' : 'full file';
-          const lines = text.split('\n').length;
+      if(captureCtx) {
+        const {text,isSel}=editor.getSelOrAll();
+        if(text.trim()) {
+          S.chatCtx=text; S.chatCtxLabel=isSel?'selection':'full file';
+          const lines=text.split('\n').length;
           $('#ctx-bar').addClass('has');
           $('#ctx-txt').text(`Context: ${S.chatCtxLabel} (${lines} lines)`);
         }
       }
-      setTimeout(() => document.getElementById('chat-in').focus(), 200);
+      setTimeout(()=>document.getElementById('chat-in').focus(),200);
     } else {
       $('#chat-win').removeClass('show');
     }
   },
   clearCtx() {
-    S.chatCtx = null; S.chatCtxLabel = '';
+    S.chatCtx=null; S.chatCtxLabel='';
     $('#ctx-bar').removeClass('has');
     $('#ctx-txt').text('No code context');
   },
   clear() {
-    S.chatHistory = [];
-    $('#chat-msgs').empty();
-    this._addMsg('ai', '🗑 Chat cleared. Ask me anything!');
+    S.chatHistory=[]; $('#chat-msgs').empty();
+    this._addMsg('ai','🗑 Chat cleared. Ready to help!');
+  },
+  switchTab(tab) {
+    $('.chat-tab').removeClass('active');
+    $('.chat-pane').removeClass('active');
+    $(`.chat-tab[data-tab="${tab}"]`).addClass('active');
+    if(tab==='chat') $('#chat-pane').addClass('active');
+    else if(tab==='snippets') $('#snippets-pane-wrap').addClass('active');
+  },
+  quickSend(msg) {
+    this.toggle(true);
+    $('#chat-in').val(msg);
+    this.send();
   },
   _addMsg(role, text, isCode) {
-    const div = document.createElement('div');
-    div.className = 'cm' + (role === 'ai' ? ' ai' : '');
-    const roleLabel = role === 'user' ? 'You' : 'AI Assistant';
-    if (isCode) {
-      div.innerHTML = `<div class="cr">${roleLabel}</div><div class="cc">${escH(text)}</div>`;
-      const acts = document.createElement('div');
-      acts.className = 'cc-acts';
-      // Apply button
-      const applyBtn = document.createElement('button');
-      applyBtn.className = 'cca';
-      applyBtn.innerHTML = '<i class="bi bi-arrow-return-left"></i> Apply to Editor';
-      applyBtn.addEventListener('click', () => {
-        const clean = text.replace(/^```[\w]*\n?/gm,'').replace(/```\s*$/gm,'').trim();
-        const { isSel } = editor.getSelOrAll();
-        if (isSel && S.chatCtx) S.cm.replaceSelection(clean);
-        else S.cm.setValue(clean);
-        if (S.activeFileId && S.fileData[S.activeFileId]) S.fileData[S.activeFileId].content = S.cm.getValue();
-        S.cm.focus();
-        toast('Applied to editor', 'success');
-        IDE.probs.lintDebounced();
+    const div=document.createElement('div');
+    div.className='cm-msg'+(role==='ai'?' ai':'');
+    const roleLabel=role==='user'?'You':'AI Assistant';
+    if(isCode) {
+      div.innerHTML=`<div class="cr"><i class="bi bi-${role==='ai'?'stars':'person-fill'}"></i> ${roleLabel}</div><div class="cc">${escH(text)}</div>`;
+      const acts=document.createElement('div'); acts.className='cc-acts';
+      const applyBtn=document.createElement('button'); applyBtn.className='cca'; applyBtn.innerHTML='<i class="bi bi-arrow-return-left"></i> Apply';
+      applyBtn.addEventListener('click',()=>{
+        const clean=text.replace(/^```[\w]*\n?/gm,'').replace(/```\s*$/gm,'').trim();
+        const {isSel}=editor.getSelOrAll();
+        if(isSel&&S.chatCtx) S.cm.replaceSelection(clean); else S.cm.setValue(clean);
+        if(S.activeFileId&&S.fileData[S.activeFileId]) S.fileData[S.activeFileId].content=S.cm.getValue();
+        S.cm.focus(); toast('Applied','success'); IDE.probs.lintDebounced();
       });
-      // Copy button
-      const copyBtn = document.createElement('button');
-      copyBtn.className = 'cca cp';
-      copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Copy';
-      copyBtn.addEventListener('click', () => {
-        (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
+      const copyBtn=document.createElement('button'); copyBtn.className='cca cp'; copyBtn.innerHTML='<i class="bi bi-clipboard"></i> Copy';
+      copyBtn.addEventListener('click',()=>{
+        (navigator.clipboard?navigator.clipboard.writeText(text):Promise.reject())
           .catch(()=>{const el=document.createElement('textarea');el.value=text;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);});
         toast('Copied','success');
       });
-      acts.append(applyBtn, copyBtn);
-      div.append(acts);
+      acts.append(applyBtn,copyBtn); div.append(acts);
     } else {
-      div.innerHTML = `<div class="cr">${roleLabel}</div><div class="ct">${escH(text)}</div>`;
+      div.innerHTML=`<div class="cr"><i class="bi bi-${role==='ai'?'stars':'person-fill'}"></i> ${roleLabel}</div><div class="ct">${escH(text)}</div>`;
     }
-    const msgs = document.getElementById('chat-msgs');
-    msgs.appendChild(div);
-    msgs.scrollTop = msgs.scrollHeight;
+    const msgs=document.getElementById('chat-msgs');
+    msgs.appendChild(div); msgs.scrollTop=msgs.scrollHeight;
     return div;
   },
   _thinking() {
-    const div = document.createElement('div');
-    div.className = 'cm ai';
-    div.innerHTML = '<div class="cr">AI Assistant</div><div class="ct" style="color:var(--t3)"><i class="bi bi-arrow-repeat spin"></i> Thinking…</div>';
-    const msgs = document.getElementById('chat-msgs');
-    msgs.appendChild(div);
-    msgs.scrollTop = msgs.scrollHeight;
+    const div=document.createElement('div'); div.className='cm-msg ai';
+    div.innerHTML='<div class="cr"><i class="bi bi-stars"></i> AI Assistant</div><div class="ct" style="color:var(--t3)"><i class="bi bi-arrow-repeat spin"></i> Thinking…</div>';
+    const msgs=document.getElementById('chat-msgs');
+    msgs.appendChild(div); msgs.scrollTop=msgs.scrollHeight;
     return div;
   },
   _looksLikeCode(text) {
-    if (text.length < 25) return false;
-    return /^<\?php|^function\s|^class\s|public\s+function|def\s+\w+\(|^import\s|^from\s|^const\s|^let\s|^export\s|SELECT\s+|CREATE\s+|;\s*$|\{\s*\n/.test(text);
+    if(text.length<30) return false;
+    return /^<\?php|^function\s|^class\s|public\s+function|protected\s+function|def\s+\w+\(|^import\s|^from\s|^const\s|^let\s|^export\s|SELECT\s+|CREATE\s+|;\s*$|\{\s*\n/.test(text);
   },
   async send() {
-    const inp = document.getElementById('chat-in');
-    const msg = inp.value.trim();
-    if (!msg) return;
-    const avail = providerOrder();
-    if (!avail.length) { toast('No API key — open Settings','error'); return; }
-
-    let fullMsg = msg;
-    if (S.chatCtx) {
-      const lang = getLang();
-      fullMsg = `Code context (${S.chatCtxLabel} — ${LANG_FRIENDLY[lang]||lang}):\n\`\`\`${lang}\n${S.chatCtx}\n\`\`\`\n\nInstruction: ${msg}`;
+    const inp=document.getElementById('chat-in');
+    const msg=inp.value.trim(); if(!msg) return;
+    const avail=providerOrder();
+    if(!avail.length) { toast('No API key — open Settings','error'); return; }
+    let fullMsg=msg;
+    if(S.chatCtx) {
+      const lang=getLang();
+      fullMsg=`Code context (${S.chatCtxLabel} — ${LANG_FRIENDLY[lang]||lang}):\n\`\`\`${lang}\n${S.chatCtx}\n\`\`\`\n\nInstruction: ${msg}`;
       this.clearCtx();
     }
-
-    this._addMsg('user', msg);
-    S.chatHistory.push({ role:'user', content:fullMsg });
-    inp.value = ''; inp.style.height = 'auto';
-
-    const thinking = this._thinking();
-    $('#chat-send').prop('disabled', true);
-
-    const lang = getLang();
-    const sysPrompt = `You are an expert AI coding assistant (like Trae AI / Cursor). Rules:
-1. When writing code: return complete, working code with NO markdown fences
-2. When explaining: use bullet points, be technical and concise
-3. For ${LANG_FRIENDLY[lang]||lang}: follow best practices and conventions
-4. If code context is provided, apply changes to THAT code
-5. Maintain the user's coding style from context
-6. Be direct and practical — no fluff`;
-
-    const latestContent = S.chatHistory[S.chatHistory.length - 1].content;
-
-    try {
-      let result = '', usedProv = avail[0];
-      for (const p of avail) {
-        try {
-          result = await aiApi.call(p, latestContent, sysPrompt);
-          usedProv = p; updateProvUI(p);
-          break;
-        } catch(e) {
-          if (e.type === 'ex') { S.providers[p].ex = true; setProvSt(p, 'ex'); }
-          else if (e.type !== 'no_key') setProvSt(p, 'err');
+    // Handle @file references
+    if(msg.includes('@')) {
+      const match=msg.match(/@(\S+)/);
+      if(match) {
+        const fname=match[1];
+        const found=Object.values(S.nodes).find(n=>n.type==='file'&&n.name.toLowerCase()===fname.toLowerCase());
+        if(found&&S.fileData[found.id]) {
+          const content=await fs._loadContent(found.id);
+          fullMsg=`File: ${found.name}\n\`\`\`\n${content}\n\`\`\`\n\nQuestion: ${msg.replace(/@\S+/g,'').trim()}`;
         }
       }
-      if (!result) throw new Error('All providers failed');
+    }
+    this._addMsg('user',msg);
+    S.chatHistory.push({role:'user',content:fullMsg});
+    inp.value=''; inp.style.height='auto';
+    const thinking=this._thinking();
+    $('#chat-send').prop('disabled',true);
+    const lang=getLang();
+    const sysPrompt=`You are an expert AI coding assistant (Trae AI / Cursor style). Rules:
+1. When writing code: return complete working code with NO markdown fences
+2. When explaining: use bullets, be technical and concise
+3. For ${LANG_FRIENDLY[lang]||lang}: follow best practices
+4. If code context provided, apply changes to THAT code
+5. Be direct and practical`;
+    try {
+      let result='',usedProv=avail[0];
+      for(const p of avail) {
+        try {
+          result=await aiApi.call(p,S.chatHistory[S.chatHistory.length-1].content,sysPrompt);
+          usedProv=p; updateProvUI(p); break;
+        } catch(e) {
+          if(e.type==='ex'){S.providers[p].ex=true;setProvSt(p,'ex');}
+          else if(e.type!=='no_key') setProvSt(p,'err');
+        }
+      }
+      if(!result) throw new Error('All providers failed');
       thinking.remove();
-      const clean = result.replace(/^```[\w]*\n?/gm,'').replace(/```\s*$/gm,'').trim();
-      this._addMsg('ai', clean, this._looksLikeCode(clean));
-      S.chatHistory.push({ role:'assistant', content:clean });
+      const clean=result.replace(/^```[\w]*\n?/gm,'').replace(/```\s*$/gm,'').trim();
+      this._addMsg('ai',clean,this._looksLikeCode(clean));
+      S.chatHistory.push({role:'assistant',content:clean});
     } catch(e) {
       thinking.remove();
-      this._addMsg('ai', '⚠ ' + (e.message || 'Request failed. Check API keys.'));
+      this._addMsg('ai','⚠ '+(e.message||'Request failed. Check API keys.'));
     } finally {
-      $('#chat-send').prop('disabled', false);
-      setTimeout(() => inp.focus(), 80);
+      $('#chat-send').prop('disabled',false);
+      setTimeout(()=>inp.focus(),80);
     }
+  },
+};
+
+// ── Snippets ──────────────────────────────────────────────
+const snippets = {
+  render() {
+    const pane=$('#snippets-pane'); pane.empty();
+    SNIPPETS.forEach(s=>{
+      const el=$(`<div class="snip-item"><div class="snip-name"><i class="bi bi-code-slash" style="margin-right:5px;color:var(--ac)"></i>${escH(s.name)}</div><div class="snip-desc">${escH(s.desc)}</div></div>`);
+      el.on('click',()=>{
+        S.cm.replaceSelection(s.code);
+        S.cm.focus();
+        toast(`Inserted: ${s.name}`,'success');
+        IDE.chat.switchTab('chat');
+      });
+      pane.append(el);
+    });
+  },
+};
+
+// ── Command Palette ───────────────────────────────────────
+const cmdPalette = {
+  _cmds: [],
+  _sel: 0,
+  show() {
+    $('#cmd-overlay').addClass('show');
+    $('#cmd-in').val('').focus();
+    this._render('');
+  },
+  hide() { $('#cmd-overlay').removeClass('show'); },
+  _render(q) {
+    const groups = [
+      { label:'AI Actions', cmds:[
+        {icon:'bi-lightning-fill',label:'AI: Autocomplete',key:'Ctrl+Space',fn:()=>IDE.ai.run('complete')},
+        {icon:'bi-wrench',label:'AI: Fix Code',key:'Alt+F',fn:()=>IDE.ai.run('fix')},
+        {icon:'bi-chat-text',label:'AI: Explain Code',key:'Alt+E',fn:()=>IDE.ai.run('explain')},
+        {icon:'bi-shield-check',label:'AI: Code Review',key:'Alt+R',fn:()=>IDE.ai.run('review')},
+        {icon:'bi-layout-text-sidebar',label:'AI: Format Code',key:'Alt+Shift+F',fn:()=>IDE.ai.run('format')},
+        {icon:'bi-arrow-repeat',label:'AI: Refactor',key:'',fn:()=>IDE.ai.run('refactor')},
+        {icon:'bi-speedometer2',label:'AI: Optimize',key:'',fn:()=>IDE.ai.run('optimize')},
+        {icon:'bi-file-text',label:'AI: Add Docs',key:'',fn:()=>IDE.ai.run('doc')},
+        {icon:'bi-check2-circle',label:'AI: Generate Tests',key:'',fn:()=>IDE.ai.run('tests')},
+        {icon:'bi-arrow-left-right',label:'AI: Convert Code',key:'',fn:()=>IDE.ai.run('convert')},
+        {icon:'bi-robot',label:'AI Agent: Run Task',key:'',fn:()=>IDE.agent.start()},
+        {icon:'bi-stars',label:'Open AI Chat',key:'Ctrl+U',fn:()=>IDE.chat.toggle(true)},
+        {icon:'bi-pencil',label:'Inline AI Edit',key:'Ctrl+K',fn:()=>IDE.inlineEdit.show()},
+      ]},
+      { label:'File', cmds:[
+        {icon:'bi-file-plus',label:'New File',key:'Ctrl+N',fn:()=>IDE.fs.newFilePrompt(null)},
+        {icon:'bi-folder2-open',label:'Open Folder',key:'',fn:()=>IDE.fs.openFolder()},
+        {icon:'bi-floppy2',label:'Save File',key:'Ctrl+S',fn:()=>IDE.fs.saveActive()},
+        {icon:'bi-floppy2-fill',label:'Save All',key:'',fn:()=>IDE.fs.saveAll()},
+        {icon:'bi-eye',label:'Preview',key:'',fn:()=>IDE.preview.show()},
+      ]},
+      { label:'View', cmds:[
+        {icon:'bi-layout-sidebar',label:'Toggle Sidebar',key:'Ctrl+B',fn:()=>IDE.sb.toggle()},
+        {icon:'bi-moon-stars-fill',label:'Toggle Theme',key:'Ctrl+Shift+T',fn:()=>IDE.theme.toggle()},
+        {icon:'bi-search',label:'Find',key:'Ctrl+F',fn:()=>IDE.findBar.toggle(false)},
+        {icon:'bi-arrow-left-right',label:'Find & Replace',key:'Ctrl+H',fn:()=>IDE.findBar.toggle(true)},
+      ]},
+    ];
+    const list=$('#cmd-list'); list.empty(); this._cmds=[];
+    let selIdx=0;
+    groups.forEach(g=>{
+      const filtered=q?g.cmds.filter(c=>c.label.toLowerCase().includes(q.toLowerCase())):g.cmds;
+      if(!filtered.length) return;
+      list.append(`<div class="cmd-group">${escH(g.label)}</div>`);
+      filtered.forEach((c,i)=>{
+        const idx=this._cmds.length; this._cmds.push(c);
+        const el=$(`<div class="cmd-item${idx===0&&!q?' sel':''}" data-idx="${idx}"><i class="bi ${c.icon}"></i><span class="cmd-label">${escH(c.label)}</span>${c.key?`<span class="cmd-key">${c.key}</span>`:''}</div>`);
+        el.on('click',()=>{ this.hide(); c.fn(); });
+        el.on('mouseenter',()=>{ this._sel=idx; this._highlight(); });
+        list.append(el);
+      });
+    });
+    this._sel=0; this._highlight();
+  },
+  _highlight() {
+    $('.cmd-item').removeClass('sel');
+    $(`.cmd-item[data-idx="${this._sel}"]`).addClass('sel');
+  },
+  init() {
+    $('#cmd-in').on('input',e=>this._render(e.target.value));
+    $('#cmd-in').on('keydown',e=>{
+      if(e.key==='ArrowDown'){e.preventDefault();this._sel=Math.min(this._sel+1,this._cmds.length-1);this._highlight();}
+      else if(e.key==='ArrowUp'){e.preventDefault();this._sel=Math.max(this._sel-1,0);this._highlight();}
+      else if(e.key==='Enter'){e.preventDefault();const c=this._cmds[this._sel];if(c){this.hide();c.fn();}}
+      else if(e.key==='Escape'){this.hide();}
+    });
+    $('#cmd-box').on('click',e=>e.stopPropagation());
   },
 };
 
 // ── Settings ──────────────────────────────────────────────
 const settings = {
   load() {
-    ['gemini','mistral','groq'].forEach(p => {
-      $('#key-'+p).val(getKey(p));
-      if (getKey(p)) setProvSt(p,'ok');
-    });
+    ['gemini','mistral','groq'].forEach(p=>{ $('#key-'+p).val(getKey(p)); if(getKey(p)) setProvSt(p,'ok'); });
     $('#s-fontsize').val(localStorage.getItem('aiide_fontsize')||'14');
     $('#s-tabsize').val(localStorage.getItem('aiide_tabsize')||'2');
     $('#s-wrap').val(localStorage.getItem('aiide_wrap')||'on');
     $('#s-aimode').val(localStorage.getItem('aiide_aimode')||'precise');
   },
   save() {
-    ['gemini','mistral','groq'].forEach(p => {
-      setKey(p, $('#key-'+p).val().trim());
-      if (getKey(p)) { S.providers[p].ex = false; setProvSt(p,'ok'); }
-    });
-    const fs_ = $('#s-fontsize').val();
-    const ts = parseInt($('#s-tabsize').val());
-    const ww = $('#s-wrap').val();
-    const am = $('#s-aimode').val();
-    localStorage.setItem('aiide_fontsize', fs_);
-    localStorage.setItem('aiide_tabsize', ts);
-    localStorage.setItem('aiide_wrap', ww);
-    localStorage.setItem('aiide_aimode', am);
-    S.cm.getWrapperElement().style.fontSize = fs_ + 'px';
-    S.cm.setOption('tabSize', ts);
-    S.cm.setOption('indentUnit', ts);
-    S.cm.setOption('lineWrapping', ww === 'on');
-    S.cm.refresh();
-    const avail = providerOrder();
-    if (avail.length) updateProvUI(avail[0]);
+    ['gemini','mistral','groq'].forEach(p=>{ setKey(p,$('#key-'+p).val().trim()); if(getKey(p)){S.providers[p].ex=false;setProvSt(p,'ok');} });
+    const fs_=$('#s-fontsize').val(), ts=parseInt($('#s-tabsize').val()), ww=$('#s-wrap').val(), am=$('#s-aimode').val();
+    localStorage.setItem('aiide_fontsize',fs_); localStorage.setItem('aiide_tabsize',ts);
+    localStorage.setItem('aiide_wrap',ww); localStorage.setItem('aiide_aimode',am);
+    S.cm.getWrapperElement().style.fontSize=fs_+'px';
+    S.cm.setOption('tabSize',ts); S.cm.setOption('indentUnit',ts);
+    S.cm.setOption('lineWrapping',ww==='on'); S.cm.refresh();
+    const avail=providerOrder(); if(avail.length) updateProvUI(avail[0]);
     bootstrap.Modal.getInstance(document.getElementById('settingsModal'))?.hide();
-    toast('Settings saved', 'success');
+    toast('Settings saved','success');
   },
   applyToEditor() {
-    const fs_ = localStorage.getItem('aiide_fontsize') || '14';
-    const ts = parseInt(localStorage.getItem('aiide_tabsize') || '2');
-    const ww = localStorage.getItem('aiide_wrap') || 'on';
-    S.cm.getWrapperElement().style.fontSize = fs_ + 'px';
-    S.cm.setOption('tabSize', ts);
-    S.cm.setOption('indentUnit', ts);
-    S.cm.setOption('lineWrapping', ww === 'on');
+    const fs_=localStorage.getItem('aiide_fontsize')||'14';
+    const ts=parseInt(localStorage.getItem('aiide_tabsize')||'2');
+    const ww=localStorage.getItem('aiide_wrap')||'on';
+    S.cm.getWrapperElement().style.fontSize=fs_+'px';
+    S.cm.setOption('tabSize',ts); S.cm.setOption('indentUnit',ts);
+    S.cm.setOption('lineWrapping',ww==='on');
   },
 };
 
 // ── Theme ─────────────────────────────────────────────────
 const theme = {
   toggle() {
-    S.theme = S.theme === 'dark' ? 'light' : 'dark';
-    $('html').attr('data-theme', S.theme);
-    S.cm.setOption('theme', S.theme === 'dark' ? 'dracula' : 'default');
-    $('#themeBtn i').attr('class', S.theme === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill');
-    localStorage.setItem('aiide_theme', S.theme);
+    S.theme=S.theme==='dark'?'light':'dark';
+    $('html').attr('data-theme',S.theme);
+    S.cm.setOption('theme',S.theme==='dark'?'dracula':'default');
+    $('#themeBtn i').attr('class',S.theme==='dark'?'bi bi-moon-stars-fill':'bi bi-sun-fill');
+    localStorage.setItem('aiide_theme',S.theme);
   },
   init() {
-    const t = localStorage.getItem('aiide_theme') || 'dark';
-    if (t !== 'dark') {
-      S.theme = 'light';
-      $('html').attr('data-theme','light');
+    const t=localStorage.getItem('aiide_theme')||'dark';
+    if(t!=='dark') {
+      S.theme='light'; $('html').attr('data-theme','light');
       $('#themeBtn i').attr('class','bi bi-sun-fill');
       S.cm?.setOption('theme','default');
     }
@@ -1817,25 +2288,37 @@ const theme = {
 // ── Resizer ───────────────────────────────────────────────
 function initResizer() {
   let drag=false, startY=0, startH=0;
-  $('#resizer').on('mousedown', function(e) {
+  $('#resizer').on('mousedown',function(e){
     drag=true; startY=e.clientY;
-    startH = $('#out-panel').hasClass('open') ? $('#out-panel').height() : 0;
+    startH=$('#out-area').hasClass('open')?$('#out-area').height():0;
     $(this).addClass('dragging'); e.preventDefault();
   });
-  $(document).on('mousemove', function(e) {
-    if (!drag) return;
-    const diff = startY - e.clientY;
-    const newH = Math.max(80, Math.min(600, startH + diff));
-    if (newH > 80) $('#out-panel').addClass('open').height(newH);
-    else $('#out-panel').removeClass('open').height(0);
-  }).on('mouseup', () => { if(drag){ drag=false; $('#resizer').removeClass('dragging'); } });
+  $(document).on('mousemove',function(e){
+    if(!drag) return;
+    const diff=startY-e.clientY;
+    const newH=Math.max(80,Math.min(600,startH+diff));
+    if(newH>80) $('#out-area').addClass('open').height(newH);
+    else $('#out-area').removeClass('open').height(0);
+  }).on('mouseup',()=>{ if(drag){drag=false;$('#resizer').removeClass('dragging');} });
 }
 
-// ── Chat input auto-resize ────────────────────────────────
+// ── Shortcuts table ───────────────────────────────────────
+function initShortcuts() {
+  const rows=[
+    ['AI Autocomplete','Ctrl+Space'],['AI Chat (with context)','Ctrl+U'],['Inline AI Edit','Ctrl+K'],
+    ['Fix Code','Alt+F'],['Explain Code','Alt+E'],['Code Review','Alt+R'],['Format Code','Alt+Shift+F'],
+    ['Find','Ctrl+F'],['Find & Replace','Ctrl+H'],['Save','Ctrl+S'],['Save to Disk','Ctrl+Shift+S'],
+    ['Toggle Comment','Ctrl+/'],['Duplicate Line','Alt+Shift+D'],['Move Line Up/Down','Alt+↑/↓'],
+    ['Command Palette','Ctrl+Shift+P'],['Toggle Theme','Ctrl+Shift+T'],['Toggle Sidebar','Ctrl+B'],['New File','Ctrl+N'],
+  ];
+  $('#sc-body').html(rows.map(([a,k])=>`<tr style="border-bottom:1px solid var(--bd)"><td style="padding:5px 14px;color:var(--t1)">${a}</td><td style="padding:5px 14px;text-align:right"><span class="kbd">${k}</span></td></tr>`).join(''));
+}
+
+// ── Chat Input ────────────────────────────────────────────
 function initChatInput() {
-  const inp = document.getElementById('chat-in');
-  inp.addEventListener('input', () => { inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,110)+'px'; });
-  inp.addEventListener('keydown', e => { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); IDE.chat.send(); } });
+  const inp=document.getElementById('chat-in');
+  inp.addEventListener('input',()=>{ inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,110)+'px'; });
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();IDE.chat.send();} });
 }
 
 // ── Init ──────────────────────────────────────────────────
@@ -1847,57 +2330,74 @@ function init() {
   initResizer();
   initChatInput();
   ctxMenu.init();
-  shortcutsTable();
+  findBar.init();
+  inlineEdit.init();
+  cmdPalette.init();
+  initShortcuts();
+  snippets.render();
 
-  // Default starter file
-  const id = uid();
-  addNode({ id, name:'app.php', type:'file' }, null);
-  S.fileData[id] = { content: STARTERS.php, savedContent: STARTERS.php, lang:'php' };
-  S.openTabIds.push(id);
-  S.activeFileId = id;
-  S.cm.setValue(STARTERS.php);
-  S.cm.setOption('mode','php');
-  fs.renderTree();
-  fs.renderTabs();
+  // Default file
+  const id=uid();
+  const starter=`<?php
 
-  // Provider status
-  const avail = providerOrder();
-  if (avail.length) { updateProvUI(avail[0]); }
+namespace App\\Http\\Controllers;
+
+use Illuminate\\Http\\Request;
+
+class ExampleController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(Request $request)
+    {
+        // Start building your Laravel application!
+        // Try: AI Chat (Ctrl+U), Fix (Alt+F), Explain (Alt+E)
+        // Find (Ctrl+F), Replace (Ctrl+H), Agent (toolbar)
+        $items = [];
+
+        return view('example.index', compact('items'));
+    }
+}
+`;
+  addNode({id,name:'ExampleController.php',type:'file'},null);
+  S.fileData[id]={content:starter,savedContent:starter,lang:'php'};
+  S.openTabIds.push(id); S.activeFileId=id;
+  S.cm.setValue(starter); S.cm.setOption('mode','php');
+  $('#bc-file').text('ExampleController.php');
+  fs.renderTree(); fs.renderTabs();
+
+  const avail=providerOrder();
+  if(avail.length) updateProvUI(avail[0]);
   else {
-    setTimeout(() => toast('Welcome! Click API Keys to add your free keys.','info'), 900);
-    $('#si-prov').text('⚠ Set API key');
+    setTimeout(()=>toast('Welcome! Click API Keys to add your free keys.','info'),1000);
+    $('#si-prov').text('⚠ Add API key');
   }
 
-  setStatus('Ready');
-  $('#si-lines').text(S.cm.lineCount() + ' lines');
-  document.getElementById('settingsModal').addEventListener('show.bs.modal', () => settings.load());
+  setStatus('Ready'); $('#si-lines').text(S.cm.lineCount()+' lines');
+  document.getElementById('settingsModal').addEventListener('show.bs.modal',()=>settings.load());
 
-  // Drag-over sidebar for file drop
-  document.getElementById('file-tree').addEventListener('dragover', e => e.preventDefault());
-  document.getElementById('file-tree').addEventListener('drop', async (e) => {
+  // Drag & drop files
+  document.getElementById('file-tree').addEventListener('dragover',e=>e.preventDefault());
+  document.getElementById('file-tree').addEventListener('drop',async e=>{
     e.preventDefault();
-    const items = e.dataTransfer.files;
-    if (!items.length) return;
-    for (const f of Array.from(items)) {
-      const ext = f.name.split('.').pop().toLowerCase();
-      if (!EXT_LANG[ext] && !['txt','md','json','svg'].includes(ext)) continue;
-      const text = await f.text();
-      const fid = uid();
-      addNode({id:fid,name:f.name,type:'file'}, null);
-      S.fileData[fid] = {content:text,savedContent:text,lang:EXT_LANG[ext]||'php'};
-      fs.openFile(fid);
+    for(const f of Array.from(e.dataTransfer.files)) {
+      const ext=f.name.split('.').pop().toLowerCase();
+      const text=await f.text(); const fid=uid();
+      addNode({id:fid,name:f.name,type:'file'},null);
+      S.fileData[fid]={content:text,savedContent:text,lang:EXT_LANG[ext]||'php'};
+      fs.renderTree(); fs.renderTabs(); fs.openFile(fid);
     }
-    fs.renderTree(); fs.renderTabs();
   });
 
-  setTimeout(() => { S.cm.focus(); S.cm.refresh(); }, 300);
+  setTimeout(()=>{ S.cm.focus(); S.cm.refresh(); },300);
 }
 
 // ── Public API ────────────────────────────────────────────
-return { editor, fs, sb, probs, panel, ai, chat, settings, theme, ctxMenu, init };
+return { editor, fs, sb, probs, out, outTabs, ai, agent, chat, settings, theme, ctxMenu, findBar, inlineEdit, cmdPalette, preview, snippets, init };
 })();
 
-$(document).ready(() => IDE.init());
+$(document).ready(()=>IDE.init());
 </script>
 </body>
 </html>
