@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/theme/dracula.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/hint/show-hint.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/dialog/dialog.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/lint/lint.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/search/matchesonscrollbar.min.css">
 <style>
 :root {
@@ -38,16 +39,16 @@ html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--bg
 /* ── TITLEBAR ─────────────────────────────────────────── */
 #titlebar{
   height:var(--th);background:var(--bg1);border-bottom:1px solid var(--bd);
-  display:flex;align-items:center;padding:0 6px;gap:2px;flex-shrink:0;z-index:200;
+  display:flex;align-items:center;padding:0 8px;gap:4px;flex-shrink:0;z-index:200;
   user-select:none;
 }
-.brand{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;
-  padding:0 8px;color:var(--t1);letter-spacing:-.3px}
-.brand-logo{width:24px;height:24px;border-radius:5px;
+.brand{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;
+  padding:0 10px;color:var(--t1);letter-spacing:-.3px}
+.brand-logo{width:26px;height:26px;border-radius:6px;
   background:linear-gradient(135deg,var(--ac),#a78bfa);
-  display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:800}
-.tb{background:none;border:none;color:var(--t2);padding:3px 8px;border-radius:var(--r);
-  font-size:11.5px;cursor:pointer;display:flex;align-items:center;gap:4px;
+  display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;font-weight:800;box-shadow:0 2px 8px rgba(124,106,247,.3)}
+.tb{background:none;border:none;color:var(--t2);padding:4px 10px;border-radius:var(--r);
+  font-size:11.5px;cursor:pointer;display:flex;align-items:center;gap:5px;
   white-space:nowrap;transition:all .12s;height:28px}
 .tb:hover{background:var(--bg3);color:var(--t1)}
 .tb.active{background:var(--bg3);color:var(--ac)}
@@ -63,14 +64,14 @@ html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--bg
 #sidebar{
   width:var(--sw);min-width:var(--sw);background:var(--bg1);border-right:1px solid var(--bd);
   display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;
-  transition:width .18s,min-width .18s
+  transition:width .2s ease,min-width .2s ease
 }
 #sidebar.collapsed{width:0;min-width:0;border-right:none}
 .sb-section{display:flex;flex-direction:column;flex:1;overflow:hidden}
 .sb-hdr{
-  padding:5px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
   color:var(--t3);display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1px solid var(--bd);flex-shrink:0;user-select:none;height:30px
+  border-bottom:1px solid var(--bd);flex-shrink:0;user-select:none;height:32px
 }
 .sb-hdr-title{display:flex;align-items:center;gap:5px;flex:1;cursor:pointer;overflow:hidden}
 .sb-hdr-acts{display:flex;gap:1px}
@@ -121,15 +122,15 @@ html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--bg
 
 /* ── TABS BAR ─────────────────────────────────────────── */
 #tabs-bar{
-  height:35px;background:var(--bg1);border-bottom:1px solid var(--bd);
-  display:flex;align-items:flex-end;overflow-x:auto;flex-shrink:0;scrollbar-width:none
+  height:36px;background:var(--bg1);border-bottom:1px solid var(--bd);
+  display:flex;align-items:flex-end;overflow-x:auto;flex-shrink:0;scrollbar-width:none;padding:0 4px
 }
 #tabs-bar::-webkit-scrollbar{display:none}
 .tab{
-  display:flex;align-items:center;gap:5px;padding:0 10px;height:33px;
-  min-width:90px;max-width:160px;font-size:11.5px;color:var(--t2);cursor:pointer;
+  display:flex;align-items:center;gap:6px;padding:0 12px;height:34px;
+  min-width:100px;max-width:180px;font-size:11.5px;color:var(--t2);cursor:pointer;
   flex-shrink:0;border-right:1px solid var(--bd);border-top:2px solid transparent;
-  background:var(--bg1);white-space:nowrap;overflow:hidden;transition:all .1s;
+  background:var(--bg1);white-space:nowrap;overflow:hidden;transition:all .15s;
   position:relative
 }
 .tab:hover{background:var(--bg2);color:var(--t1)}
@@ -156,13 +157,13 @@ html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--bg
 
 /* ── TOOLBAR ──────────────────────────────────────────── */
 #toolbar{
-  display:flex;align-items:center;gap:3px;padding:4px 8px;
+  display:flex;align-items:center;gap:4px;padding:6px 10px;
   background:var(--bg1);border-bottom:1px solid var(--bd);flex-shrink:0;flex-wrap:wrap
 }
 .btn-ai{
-  display:flex;align-items:center;gap:4px;border:1px solid var(--bd);border-radius:var(--r);
-  padding:3px 10px;font-size:11px;cursor:pointer;background:var(--bg2);color:var(--t1);
-  font-family:var(--fui);white-space:nowrap;transition:all .12s;height:26px
+  display:flex;align-items:center;gap:5px;border:1px solid var(--bd);border-radius:var(--r);
+  padding:4px 12px;font-size:11px;cursor:pointer;background:var(--bg2);color:var(--t1);
+  font-family:var(--fui);white-space:nowrap;transition:all .15s;height:28px;font-weight:500
 }
 .btn-ai:hover{filter:brightness(1.2)}
 .btn-ai:disabled{opacity:.35;cursor:not-allowed}
@@ -190,10 +191,17 @@ html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--bg
 .CodeMirror{height:100%!important;font-family:var(--fmono)!important;
   font-size:14px!important;line-height:1.7!important;background:var(--bg0)!important}
 .CodeMirror-scroll{overflow:auto!important}
-.CodeMirror-gutters{background:var(--bg1)!important;border-right:1px solid var(--bd)!important;min-width:44px}
-.CodeMirror-linenumber{color:var(--t3)!important;padding:0 6px!important}
+.CodeMirror-gutters{background:var(--bg1)!important;border-right:1px solid var(--bd)!important;min-width:50px}
+.CodeMirror-linenumber{color:var(--t3)!important;padding:0 8px!important;font-size:12px!important}
+.CodeMirror-selected{background:rgba(124,106,247,.2)!important}
+.CodeMirror-cursor{border-left:2px solid var(--ac)!important}
+.CodeMirror-searching{background:rgba(240,192,80,.3)!important}
+.CodeMirror-lint-marker-error,.CodeMirror-lint-marker-warning{width:16px;height:16px;display:inline-block;text-align:center;line-height:16px;font-size:11px}
+.CodeMirror-lint-marker-error{color:var(--acr)}
+.CodeMirror-lint-marker-warning{color:var(--acy)}
 [data-theme=light] .CodeMirror{background:#fafafa!important}
 [data-theme=light] .CodeMirror-gutters{background:#f0f0f5!important}
+[data-theme=light] .CodeMirror-selected{background:rgba(91,77,224,.15)!important}
 
 /* Gutter error/warn markers */
 .CodeMirror-gutter-error{color:var(--gutter-err)!important;font-size:12px;cursor:pointer;padding:0 2px;line-height:1.7}
@@ -884,6 +892,11 @@ html,body{height:100%;overflow:hidden;font-family:var(--fui);background:var(--bg
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/search/searchcursor.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/search/jump-to-line.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/dialog/dialog.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/lint/lint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/lint/javascript-lint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/mode/multiplex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/selection/mark-selection.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/edit/trailingspace.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/fold/foldcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/fold/brace-fold.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/scroll/annotatescrollbar.min.js"></script>
@@ -1055,7 +1068,7 @@ const editor = {
       autoCloseTags:true, styleActiveLine:true,
       tabSize:2, indentUnit:2, indentWithTabs:false,
       foldGutter:true,
-      gutters:['CodeMirror-linenumbers','CodeMirror-foldgutter','cm-error-gutter'],
+      gutters:['CodeMirror-linenumbers','CodeMirror-foldgutter','CodeMirror-lint-markers'],
       highlightSelectionMatches:{ showToken:/\w/, annotateScrollbar:true },
       extraKeys:{
         'Ctrl-Space':  ()=>IDE.ai.run('complete'),
@@ -1065,6 +1078,8 @@ const editor = {
         'Ctrl-Shift-S':()=>IDE.fs.saveToDisk(),
         'Ctrl-F':      (cm)=>{IDE.findBar.toggle(false); return false;},
         'Ctrl-H':      (cm)=>{IDE.findBar.toggle(true); return false;},
+        'F3':          (cm)=>{IDE.findBar.next();},
+        'Shift-F3':    (cm)=>{IDE.findBar.prev();},
         'Ctrl-/':      cm=>cm.execCommand('toggleComment'),
         'Alt-F':       ()=>IDE.ai.run('fix'),
         'Alt-E':       ()=>IDE.ai.run('explain'),
@@ -1110,7 +1125,7 @@ const editor = {
 
     // Gutter click for error tooltip
     S.cm.on('gutterClick', (cm, line, gutter)=>{
-      if (gutter !== 'cm-error-gutter') return;
+      if (gutter !== 'CodeMirror-lint-markers') return;
       const prob = S.problems.find(p=>p.line===line);
       if (prob) toast(`Ln ${line+1}: ${prob.msg}`, prob.sev==='error'?'error':'warning');
     });
@@ -1136,7 +1151,6 @@ const editor = {
 // ── Find / Replace ────────────────────────────────────────
 const findBar = {
   _cursor: null,
-  _overlay: null,
 
   toggle(showReplace) {
     const bar=$('#find-bar');
@@ -1167,10 +1181,10 @@ const findBar = {
   _buildQuery(raw) {
     const f=this._getFlags();
     if (!raw) return null;
-    if (f.regexp) { try { return new RegExp(raw, f.caseSensitive?'g':'gi'); } catch(e){ return null; } }
+    if (f.regexp) { try { return new RegExp(raw, f.caseSensitive?'':'i'); } catch(e){ return null; } }
     let q=raw.replace(/[-[\]{}()*+?.,\\^$|#\s]/g,'\\$&');
     if (f.wholeWord) q='\\b'+q+'\\b';
-    return new RegExp(q, f.caseSensitive?'g':'gi');
+    return new RegExp(q, f.caseSensitive?'':'i');
   },
 
   _clearOverlay() {
@@ -1591,7 +1605,7 @@ const probs = {
     S.problems=[];
     // Clear gutter markers and line backgrounds
     S.cm.getAllMarks().forEach(m=>{ if(m._errMark) m.clear(); });
-    S.cm.clearGutter('cm-error-gutter');
+    S.cm.clearGutter('CodeMirror-lint-markers');
     const code=S.cm.getValue(); const lang=getLang();
     if(lang==='php') this._lintPHP(code);
     else if(lang==='javascript') this._lintJS(code);
@@ -1609,12 +1623,13 @@ const probs = {
       _errMark:true,
     });
     mark._errMark=true;
-    // Gutter marker
-    const el=document.createElement('span');
-    el.className=sev==='error'?'CodeMirror-gutter-error':'CodeMirror-gutter-warning';
+    // Gutter marker using CodeMirror's lint markers
+    const el=document.createElement('div');
+    el.className=sev==='error'?'CodeMirror-lint-marker-error':'CodeMirror-lint-marker-warning';
     el.title=msg;
     el.innerHTML=sev==='error'?'✖':'⚠';
-    S.cm.setGutterMarker(line-1,'cm-error-gutter',el);
+    el.style.cssText='position:relative;top:-2px;font-size:12px;line-height:1.7;cursor:pointer;';
+    S.cm.setGutterMarker(line-1,'CodeMirror-lint-markers',el);
   },
   _lintPHP(code) {
     const lines=code.split('\n');
@@ -1760,11 +1775,13 @@ const preview = {
     const lang=getLang();
     const frame=document.getElementById('preview-frame');
     if(lang==='htmlmixed'||lang==='html') {
-      frame.srcdoc=code;
+      frame.srcdoc=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:20px;background:#fff;color:#1a1a2e;line-height:1.6}</style></head><body>${code}</body></html>`;
     } else if(lang==='css') {
-      frame.srcdoc=`<!DOCTYPE html><html><head><style>${code}</style></head><body><div class="demo"><h1>Heading</h1><p>Paragraph text here</p><button>Button</button><a href="#">Link</a></div></body></html>`;
+      frame.srcdoc=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>${code}</style></head><body><div style="padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif"><h1 style="margin-bottom:16px">Heading</h1><p style="margin-bottom:12px;color:#666">Paragraph text here to preview CSS styles</p><button style="padding:8px 16px;background:#7c6af7;color:#fff;border:none;border-radius:4px;cursor:pointer;margin-right:8px">Button</button><a href="#" style="color:#7c6af7;text-decoration:none">Link</a></div></body></html>`;
+    } else if(lang==='javascript') {
+      frame.srcdoc=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>body{font-family:'JetBrains Mono','Fira Code',Consolas,monospace;padding:20px;background:#1a1b23;color:#e2e4ea;line-height:1.6}pre{white-space:pre-wrap;word-break:break-word}</style></head><body><pre>${escH(code)}</pre></body></html>`;
     } else {
-      frame.srcdoc=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:monospace;padding:20px;background:#1a1b23;color:#e2e4ea}pre{white-space:pre-wrap;}</style></head><body><pre>${escH(code)}</pre></body></html>`;
+      frame.srcdoc=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>body{font-family:'JetBrains Mono','Fira Code',Consolas,monospace;padding:20px;background:#1a1b23;color:#e2e4ea;line-height:1.6}pre{white-space:pre-wrap;word-break:break-word}</style></head><body><pre>${escH(code)}</pre></body></html>`;
     }
     outTabs.switch('out-preview');
   },
